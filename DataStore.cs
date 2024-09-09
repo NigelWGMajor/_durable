@@ -1,21 +1,28 @@
 namespace Degreed.SafeTest
 {
+    // defines the conventions for dealing with metadata related to the flow management processes.
+
+    // Lifecyle:
+
+    
+
+
+
+
+    public interface IDataStore
+    {
+        Task<ActivityRecord> GetActivityState(long ReportLogId);
+        Task SetActivityState(long ReportLogId, ActivityRecord record);
+
+    }
 
     public class DataStore
     {
-        private Dictionary<string, ActivityRecord> _data;
         public DataStore()
         {
-            _data = new Dictionary<string, ActivityRecord>();
+           
         }
 
-        public ActivityRecord? Get(string key)
-        {
-            if (
-                _data.ContainsKey(key)
-                return _data[key];
-            )
-            return null;
-        }
+       
     }
 }
