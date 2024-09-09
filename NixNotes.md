@@ -7,6 +7,8 @@ Use `Azurite Start` on the command line to get azurite started.
 F5 will run in the debugger: use Postman to POST to
 `http://localhost:7071/api/SafeOrchestration_HttpStart`
 
+The Output in VSCode contains azurite entries.
+
 
 ## Strategy
 
