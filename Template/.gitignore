@@ -7,10 +7,10 @@ local.settings.json
 **/[Bb]in/**
 **/[Oo]bj/**
 
-__blobstorage__
-__queuestorage__
+__blobstorage__/**
+__queuestorage__/**
 __azurite_*.json
-.vscode
+.vscode/**
 
 
 # User-specific files
