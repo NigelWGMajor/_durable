@@ -4,6 +4,7 @@ using Microsoft.DurableTask;
 using Microsoft.DurableTask.Client;
 using Microsoft.Extensions.Logging;
 using Degreed.SafeTest;
+using static TestActivities;
 
 public static class SafeOrchestration
 {
@@ -25,13 +26,13 @@ public static class SafeOrchestration
         return outputs;
     }
 
-    [Function(nameof(SayHello))]
-    public static string SayHello([ActivityTrigger] string name, FunctionContext executionContext)
-    {
-        ILogger logger = executionContext.GetLogger("SayHello");
-        logger.LogInformation("Saying hello to {name}.", name);
-        return $"Hello {name}!";
-    }
+    // [Function(nameof(SayHello))]
+    // public static string SayHello([ActivityTrigger] string name, FunctionContext executionContext)
+    // {
+    //     ILogger logger = executionContext.GetLogger("SayHello");
+    //     logger.LogInformation("Saying hello to {name}.", name);
+    //     return $"Hello {name}!";
+    // }
 
     [Function("SafeOrchestration_HttpStart")]
     public static async Task<HttpResponseData> HttpStart(
