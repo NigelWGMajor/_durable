@@ -1,13 +1,12 @@
-namespace Degreed.SafeTest
+namespace Degreed.SafeTest;
+
+public enum ActivityState
 {
-   public enum ActivityState
-   {
-    unknown = 0,
-    Stuck,
-    Deferred,
-    Active,
-    Completed,
-    Stalled,
-    Failed
-   }
+unknown = 0,
+Stuck,
+Deferred,
+Active,
+Completed,
+Stalled,
+Failed
 }

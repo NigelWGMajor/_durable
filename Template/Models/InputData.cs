@@ -1,8 +1,11 @@
+namespace Degreed.SafeTest;
+
+using System.Text.Json.Serialization;
 public class InputData
 {
-    [JsonProperty("name")]
-    public string Name { get; set; }
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = "";
 
-    [JsonProperty("identity")]
-    public long Identity { get; set; }
+    [JsonPropertyName("identity")]
+    public long Identity { get; set; } = 0;
 }
