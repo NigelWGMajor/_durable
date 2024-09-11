@@ -14,14 +14,17 @@ The Output in VSCode contains azurite entries.
 
 [refer to](./readme.md)
  
-
-
-
-
-
 ## manual run
 
-Delete the obj and bin folders.
+F1 => Azurite:start
+F5 to debug.
+
+🔥If unable to run- with 404s, try 
+- F1 => Azurite: Close
+- delete __azurite* files
+- F1 => Azurite: Start
+
+<!-- Delete the obj and bin folders.
 
 From the terminal
 `cd Template`
@@ -35,4 +38,4 @@ Close the terminal? Then it should run the Executing task: func host start
 
 I am getting `Port 7071 is unavailable. Close the process using that port, or specify another port using --port [-p].`
 
-Will try restarting everything!
+Will try restarting everything! -->
