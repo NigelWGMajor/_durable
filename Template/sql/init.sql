@@ -21,7 +21,7 @@ create table [rpt].[FlowStates](
  constraint [PK_rpt.FlowStates] primary key CLUSTERED 
 (
 	[FlowStateId] asc
-)with (pad_index = off, statistics_norecompute = off, ignore_dup_key = off, allow_row_locks = on, allow_page_locks = on, optimize_for_sequential_key = off) ON [PRIMARY]
+) with (pad_index = off, statistics_norecompute = off, ignore_dup_key = off, allow_row_locks = on, allow_page_locks = on, optimize_for_sequential_key = off) ON [PRIMARY]
 ) on [primary]
 go
 -- populate FlowStates table
@@ -33,19 +33,21 @@ insert into rpt.FlowStates(FlowStateName) values ('Completed');
 insert into rpt.FlowStates(FlowStateName) values ('Stalled');
 insert into rpt.FlowStates(FlowStateName) values ('Failed');
 -- create ReportFlowStates table to house runtime flow states
-create table [rpt].[ReportFlowStates](
-	[ReportFlowStateID] [bigint] not null,
-	[Key] [bigint] not null,
-	[ActivityName] [nvarchar](100) not null,
-	[ActivityTime] [datetimeoffset](7) null,
-	[ActivityState] [tinyint] null,
-	[Sequence] [int] null,
-	[Message] [nvarchar](500) null,
+create table rpt.ReportFlowStates(
+	ReportFlowStateID bigint identity not null,
+	KeyId nvarchar(100) not null,
+	ActivityName nvarchar(100) not null,
+	TimeStarted datetime2(7) null,
+	TimeEnded datetime2(7) null,
+	TimeUpdated datetime2(7) null,
+	ActivityState tinyint null,
+	Count int null,
+	Notes [nvarchar](max) null,
  constraint [PK_rpt.ReportFlowStates] primary key clustered 
 (
 	[ReportFlowStateID] asc
 )with (pad_index = off, statistics_norecompute = off, ignore_dup_key = off, allow_row_locks = on, allow_page_locks = on, optimize_for_sequential_key = off) on [primary]
-) on [primary]
+) on [primary];
 go
-alter table [rpt].[ReportFlowStates] add  constraint [DF_ReportFlowStates_ActivityState]  default ((0)) for [ActivityState]
+alter table rpt.ReportFlowStates add constraint DF_ReportFlowStates_ActivityState default ((0)) for ActivityState;
 go
