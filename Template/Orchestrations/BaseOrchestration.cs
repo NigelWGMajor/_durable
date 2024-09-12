@@ -7,23 +7,18 @@ using Microsoft.DurableTask.Client;
 /// <summary>
 /// This class extends any orchestration to integrate Flow Management 
 /// in a simple manner.
-/// 
+/// Essentially it wraps the function calls to allow suppression of the 
+/// calls and error detection. 
 /// Any orchestration class that needs this should derive from this class. 
 /// </summary>
 public static class BaseOrchestration<T>
 {
-    
-    static BaseOrchestration()
-    {
-            
-    }
-    public static async Task<Product<T>> ProcessSafelyAsync(
+    public static async Task<Product> ProcessSafelyAsync(
         string activityName, 
-        Product<T> product, 
+        Product product, 
         TaskOrchestrationContext context)
     {
         await Task.CompletedTask;
-
 
         return product;
     }

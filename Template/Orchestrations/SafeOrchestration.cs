@@ -8,11 +8,11 @@ using static TestActivities;
 
 public static class SafeOrchestration
 {
-    [Function(nameof(SafeOrchestration))]
+    [Function(nameof(RunOrchestrator))]
     public static async Task<List<string>> RunOrchestrator(
         [OrchestrationTrigger] TaskOrchestrationContext context)
     {
-        ILogger logger = context.CreateReplaySafeLogger(nameof(SafeOrchestration));
+        ILogger logger = context.CreateReplaySafeLogger(nameof(RunOrchestrator));
         var input = context.GetInput<InputData>();
         logger.LogInformation("Saying hello.");
         var outputs = new List<string>();
@@ -44,7 +44,7 @@ public static class SafeOrchestration
 
         // Function input comes from the request content.
         string instanceId = await client.ScheduleNewOrchestrationInstanceAsync(
-            nameof(SafeOrchestration));
+            nameof(RunOrchestrator));
 
         logger.LogInformation("Started orchestration with ID = '{instanceId}'.", instanceId);
 
