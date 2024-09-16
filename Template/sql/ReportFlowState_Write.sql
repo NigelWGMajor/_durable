@@ -25,7 +25,7 @@ begin
                 json_value(@json, '$.ActivityState') as ActivityState,
                 json_value(@json, '$.Notes') as Notes,
                 json_value(@json, '$.ProcessId') as ProcessId,
-                json_value(@json, '$.Instances') as Instances,
+                json_value(@json, '$.InstanceNumber') as InstanceNumber,
                 GetUtcDate() as TimeUpdated
            ) as source
     on (target.KeyId = source.KeyId)
@@ -37,10 +37,10 @@ begin
             ActivityState = source.ActivityState,
             Notes = source.Notes,
             ProcessId = source.ProcessId,
-            Instances = source.Instances,
+            InstanceNumber = source.InstanceNumber,
             TimeUpdated = source.TimeUpdated
     when not matched then
-        insert (KeyId, ActivityName, TimeStarted, TimeEnded, ActivityState, Notes, ProcessId, Instances, TimeUpdated)
-        values (source.KeyId, source.ActivityName, source.TimeStarted, source.TimeEnded, source.ActivityState, source.Notes, source.ProcessId, source.Instances, source.TimeUpdated);
+        insert (KeyId, ActivityName, TimeStarted, TimeEnded, ActivityState, Notes, ProcessId, InstanceNumber, TimeUpdated)
+        values (source.KeyId, source.ActivityName, source.TimeStarted, source.TimeEnded, source.ActivityState, source.Notes, source.ProcessId, source.InstanceNumber, source.TimeUpdated);
 end
 go

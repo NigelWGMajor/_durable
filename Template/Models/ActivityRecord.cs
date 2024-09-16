@@ -5,11 +5,11 @@ namespace Degreed.SafeTest
         public string KeyId { get; set; } = "";
         public string ActivityName { get; set; } = "";
         public ActivityState State { get; set; } = ActivityState.unknown;
-        public DateTimeOffset Started { get; set; }
-        public DateTimeOffset Ended { get; set; }
-        public DateTimeOffset Modified { get; set; }
+        public DateTimeOffset TimeStarted { get; set; }
+        public DateTimeOffset TimeEnded { get; set; }
+        public DateTimeOffset TimeUpdated { get; set; }
         public string Notes { get; set; } = "";
-        public int ProcessId { get; set; }
-        public int Instances { get; set; }
+        public string ProcessId { get; set; } = "";
+        public int InstanceNumber { get; set; }
     }
 }

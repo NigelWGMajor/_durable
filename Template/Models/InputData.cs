@@ -7,5 +7,8 @@ public class InputData
     public string Name { get; set; } = "";
 
     [JsonPropertyName("identity")]
-    public long Identity { get; set; } = 0;
+    public string Identity { get; set; } = "";
+
+    [JsonPropertyName("testStates")]
+    public ActivityState[] TestStates { get; set; } = [];
 }

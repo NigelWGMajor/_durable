@@ -26,7 +26,7 @@ begin
            TimeUpdated,
            Notes,
            ProcessId,
-           Instances
+           InstanceNumber
         from 
             rpt.ReportFlowStates
         where 

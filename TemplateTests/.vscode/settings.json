@@ -1,0 +1,4 @@
+{
+    "iis.configDir": "",
+    "dotnet-test-explorer.testProjectPath": "TemplateIntegrationTests/"
+}

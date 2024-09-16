@@ -25,11 +25,12 @@ create table [rpt].[FlowStates](
 ) on [primary]
 go
 -- populate FlowStates table
-insert into rpt.FlowStates(FlowStateName) values ('unknown');
-insert into rpt.FlowStates(FlowStateName) values ('Stuck');
-insert into rpt.FlowStates(FlowStateName) values ('Deferred');
+insert into rpt.FlowStates(FlowStateName) values ('Ready');
 insert into rpt.FlowStates(FlowStateName) values ('Active');
+insert into rpt.FlowStates(FlowStateName) values ('Redundant');
+insert into rpt.FlowStates(FlowStateName) values ('Deferred');
 insert into rpt.FlowStates(FlowStateName) values ('Completed');
+insert into rpt.FlowStates(FlowStateName) values ('Stuck');
 insert into rpt.FlowStates(FlowStateName) values ('Stalled');
 insert into rpt.FlowStates(FlowStateName) values ('Failed');
 -- create ReportFlowStates table to house runtime flow states
@@ -42,7 +43,9 @@ create table rpt.ReportFlowStates(
 	TimeUpdated datetime2(7) null,
 	ActivityState tinyint null,
 	Count int null,
-	Notes [nvarchar](max) null,
+	Notes nvarchar(max) null,
+	ProcessId nvarchar(100) null,
+	InstanceNumber int null
  constraint [PK_rpt.ReportFlowStates] primary key clustered 
 (
 	[ReportFlowStateID] asc
