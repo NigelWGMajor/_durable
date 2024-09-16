@@ -49,7 +49,7 @@ public static class BaseOrchestration
         switch (current.State)
         {
             case ActivityState.unknown:
-            case ActivityState.New: 
+            case ActivityState.Ready: 
                 current.TimeStarted = DateTime.UtcNow;
             break;
 

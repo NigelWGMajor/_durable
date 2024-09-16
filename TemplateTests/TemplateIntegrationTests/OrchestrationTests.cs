@@ -1,18 +1,17 @@
 using Xunit;
 using System.Net.Http;
-using Degreed.SafeTest;
 using System.Text.Json;
 
 using System.Text;
 
-
 namespace TemplateIntegrationTests;
+
 public class OrchestrationTests
 {
     // Prerequisites:
 
     // START:
-    //   Azurite 
+    //   Azurite
     //   Docker sqlserver with required initialization
     // LAUNCH:
     //   Template project in debug mode
@@ -20,10 +19,23 @@ public class OrchestrationTests
     [Fact]
     public async Task Orchestration_should_launch_with_parameters()
     {
-        HttpClient _client = new HttpClient();
+        HttpClient _client = new HttpClient()
+        {   // this is added to allow for code single-stepping
+            Timeout = TimeSpan.FromMinutes(10) 
+        };
         string url = "http://localhost:7071/api/OrchestrationZulu_HttpStart";
         // Create your JSON model
-        var model = new InputData{ Name = "John", Identity = "30", TestStates = [ActivityState.Completed, ActivityState.Completed, ActivityState.Completed]};
+        var model = new
+        {
+            Name = "John",
+            Identity = "30",
+            TestStates = new[]
+            {
+                ActivityState.Completed,
+                ActivityState.Completed,
+                ActivityState.Completed
+            }
+        };
         // Serialize the model to JSON
         string json = JsonSerializer.Serialize(model);
         // Create the HTTP content with JSON data

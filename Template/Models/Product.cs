@@ -16,7 +16,7 @@ public class Product
         var inputData = context.GetInput<InputData>();
         if (inputData == null) // this has been integration tested.
             throw new FlowManagerException("Input data was not provided to the http start command");
-        product.LastState = ActivityState.New;
+        product.LastState = ActivityState.Ready;
         product.Payload.Name = inputData.Name;
         product.Payload.Identity = inputData.Identity;
         return product;
