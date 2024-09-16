@@ -25,16 +25,16 @@ public class OrchestrationTests
         };
         string url = "http://localhost:7071/api/OrchestrationZulu_HttpStart";
         // Create your JSON model
-        var model = new
+        var model = new InputData
         {
             Name = "John",
             Identity = "30",
-            TestStates = new[]
-            {
+            TestStates =
+            [
                 ActivityState.Completed,
                 ActivityState.Completed,
                 ActivityState.Completed
-            }
+            ]
         };
         // Serialize the model to JSON
         string json = JsonSerializer.Serialize(model);
