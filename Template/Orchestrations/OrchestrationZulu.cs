@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Degreed.SafeTest;
 using static TestActivities;
 using static BaseOrchestration;
+using System.Net.Mime;
 
 public static class SafeOrchestration
 {
@@ -21,15 +22,13 @@ public static class SafeOrchestration
 //        ILogger logger = context.CreateReplaySafeLogger(nameof(RunOrchestrator));
         Product product = Product.FromContext(context);
         string output = "";
+
         product = await ProcessSafelyAsync("StepAlpha", product, context);
-        if (product.LastState == ActivityState.Redundant) return output;
         product = await ProcessSafelyAsync("StepBravo", product, context);
-        if (product.LastState == ActivityState.Redundant) return output;
         product = await ProcessSafelyAsync("StepCharlie", product, context);
-        if (product.LastState == ActivityState.Redundant) return output;
-
+        product = await EndSafelyAsync(product);
+        
         output = JsonSerializer.Serialize(product.ActivityHistory, _jsonOptions);
-
         return output;
     }
     // // //

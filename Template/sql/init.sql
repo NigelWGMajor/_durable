@@ -33,6 +33,7 @@ insert into rpt.FlowStates(FlowStateName) values ('Completed');
 insert into rpt.FlowStates(FlowStateName) values ('Stuck');
 insert into rpt.FlowStates(FlowStateName) values ('Stalled');
 insert into rpt.FlowStates(FlowStateName) values ('Failed');
+insert into rpt.FlowStates(FlowStateName) values ('Finished');
 -- create ReportFlowStates table to house runtime flow states
 create table rpt.ReportFlowStates(
 	ReportFlowStateID bigint identity not null,
