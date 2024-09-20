@@ -27,23 +27,32 @@ public static class SafeOrchestration
         Product product = Product.FromContext(context);
 
         product.ActivityName = nameof(StepAlpha);
-        product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
-        if (product.LastState != ActivityState.Active)
-            return product.LastState.ToString();
+        while (product.LastState != ActivityState.Active)
+        {
+            product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
+            if (product.LastState == ActivityState.Redundant)
+                return product.LastState.ToString();
+        }
         product = await context.CallActivityAsync<Product>(nameof(StepAlpha), product);
         product = await context.CallActivityAsync<Product>(nameof(PostProcessAsync), product);
-        
+
         product.ActivityName = nameof(StepBravo);
-        product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
-        if (product.LastState != ActivityState.Active)
-            return product.LastState.ToString();
+        while (product.LastState != ActivityState.Active)
+        {
+            product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
+            if (product.LastState == ActivityState.Redundant)
+                return product.LastState.ToString();
+        }
         product = await context.CallActivityAsync<Product>(nameof(StepBravo), product);
         product = await context.CallActivityAsync<Product>(nameof(PostProcessAsync), product);
-        
+
         product.ActivityName = nameof(StepCharlie);
-        product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
-        if (product.LastState != ActivityState.Active)
-            return product.LastState.ToString();
+        while (product.LastState != ActivityState.Active)
+        {
+            product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
+            if (product.LastState == ActivityState.Redundant)
+                return product.LastState.ToString();
+        }
         product = await context.CallActivityAsync<Product>(nameof(StepCharlie), product);
         product = await context.CallActivityAsync<Product>(nameof(PostProcessAsync), product);
         // omega:

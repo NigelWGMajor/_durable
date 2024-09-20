@@ -25,6 +25,7 @@ create table [rpt].[FlowStates](
 ) on [primary]
 go
 -- populate FlowStates table
+insert into rpt.FlowStates(FlowStateName) values ('unknown');
 insert into rpt.FlowStates(FlowStateName) values ('Ready');
 insert into rpt.FlowStates(FlowStateName) values ('Active');
 insert into rpt.FlowStates(FlowStateName) values ('Redundant');

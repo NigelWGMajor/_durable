@@ -128,14 +128,13 @@ public static class BaseActivities
                 current.State = ActivityState.Deferred;
             }
         }
-
+        if (current.State == ActivityState.Ready)
+        {
+            current.State = ActivityState.Active;
+        }
+        
         await _store.WriteActivityStateAsync(current);
 
-        // if (current.State == ActivityState.Deferred)
-        // {
-        //     // use the Durable Function framework to delay the orchestration without waste
-        //     await context.CreateTimer(Settings.DelayTime, CancellationToken.None);
-        // }
         current.UpdateProductState(product);        
         return product;
     }
