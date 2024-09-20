@@ -7,9 +7,9 @@ local.settings.json
 **/[Bb]in/**
 **/[Oo]bj/**
 
-__blobstorage__/**
-__queuestorage__/**
-__azurite_*.json
+**/__blobstorage__/**
+**/__queuestorage__/**
+**/__azurite_*.json
 .vscode/**
 
 
@@ -271,3 +271,4 @@ paket-files/
 # Python Tools for Visual Studio (PTVS)
 __pycache__/
 *.pyc
+
