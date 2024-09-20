@@ -5,7 +5,7 @@ using Microsoft.DurableTask.Client;
 using Microsoft.Extensions.Logging;
 using Degreed.SafeTest;
 using static TestActivities;
-using static BaseOrchestration;
+using static BaseActivities;
 using System.Net.Mime;
 
 public static class SafeOrchestration
@@ -47,7 +47,7 @@ public static class SafeOrchestration
         product = await context.CallActivityAsync<Product>(nameof(FinishAsync), product);
 
         string output = JsonSerializer.Serialize(product.ActivityHistory, _jsonOptions);
-        
+
         return output;
     }
 

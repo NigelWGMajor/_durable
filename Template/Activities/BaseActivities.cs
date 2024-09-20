@@ -18,11 +18,11 @@ using Microsoft.Azure.Functions.Worker;
 /// calls and error detection.
 /// Any orchestration class that needs this should derive from this class.
 /// </summary>
-public static class BaseOrchestration
+public static class BaseActivities
 {
-    private static DataStore _store;
+    private static DataStore? _store;
 
-    static BaseOrchestration()
+    static BaseActivities()
     {
         var builder = new ConfigurationBuilder()
             .SetBasePath(System.IO.Directory.GetCurrentDirectory())
