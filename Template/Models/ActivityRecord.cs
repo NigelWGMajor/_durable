@@ -1,42 +1,46 @@
 using System.Text.Json.Serialization;
+using System.Diagnostics;
 
 namespace Degreed.SafeTest
 {
+    [DebuggerStepThrough]
     public class ActivityRecord
     {
-        [JsonPropertyName("keyId")]
+        [JsonPropertyName("KeyId")]
         public string KeyId { get; set; } = "";
 
-        [JsonPropertyName("activityName")]
+        [JsonPropertyName("ActivityName")]
         public string ActivityName { get; set; } = "";
+
         [JsonIgnore]
         public ActivityState State { get; set; } = ActivityState.unknown;
 
-        [JsonPropertyName("activityState")]
+        [JsonPropertyName("ActivityState")]
         public int ActivityStateCode
         {
             get { return (int)State; }
             set { State = (ActivityState)value; }
         }
 
-        [JsonPropertyName("timeStarted")]
+        [JsonPropertyName("TimeStarted")]
         public DateTime TimeStarted { get; set; }
 
-        [JsonPropertyName("timeEnded")]
+        [JsonPropertyName("TimeEnded")]
         public DateTime TimeEnded { get; set; }
 
-        [JsonPropertyName("timeUpdated")]
+        [JsonPropertyName("TimeUpdated")]
         public DateTime TimeUpdated { get; set; }
 
-        [JsonPropertyName("notes")]
+        [JsonPropertyName("Notes")]
         public string Notes { get; set; } = "";
 
-        [JsonPropertyName("processId")]
+        [JsonPropertyName("ProcessId")]
         public string ProcessId { get; set; } = "";
 
-        [JsonPropertyName("instanceNumber")]
+        [JsonPropertyName("InstanceNumber")]
         public int InstanceNumber { get; set; }
-        [JsonPropertyName("count")]
+
+        [JsonPropertyName("Count")]
         public int Count { get; set; } = 0;
     }
 

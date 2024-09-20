@@ -1,7 +1,8 @@
 using Microsoft.Azure.Functions.Worker;
 using Degreed.SafeTest;
+using System.Diagnostics;
 
-
+[DebuggerStepThrough]
 public static class TestActivities
 {
     [Function(nameof(SayHello))]

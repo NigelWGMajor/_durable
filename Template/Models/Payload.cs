@@ -2,7 +2,9 @@
 // The flow history is attached to the enclosing Product.
 // This must be serializable.
 using Degreed.SafeTest;
+using System.Diagnostics;
 
+[DebuggerStepThrough]
 public class Payload
 {
     public string Name { get; set; } = "";

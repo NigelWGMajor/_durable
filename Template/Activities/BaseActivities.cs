@@ -68,11 +68,14 @@ public static class BaseActivities
                 current.KeyId = keyId;
                 current.State = ActivityState.Ready;
                 break;
-            case ActivityState.Ready:
             case ActivityState.Deferred:
                 // in these cases regard as Ready.
                 current.MarkStartTime();
                 current.State = ActivityState.Ready;
+                break;
+            case ActivityState.Ready:
+                current.MarkStartTime();
+                current.State = ActivityState.Active;
                 break;
             case ActivityState.Redundant:
                 // the item is blocked from this execution thread.
@@ -127,10 +130,6 @@ public static class BaseActivities
             {
                 current.State = ActivityState.Deferred;
             }
-        }
-        if (current.State == ActivityState.Ready)
-        {
-            current.State = ActivityState.Active;
         }
         
         await _store.WriteActivityStateAsync(current);
