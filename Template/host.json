@@ -11,9 +11,10 @@
   },
   "extensions": {
     "durableTask": {
-      "storageProvider": {
-        "type": "AzureStorage"
-      }
+      "extendedSessionsEnabled": true,
+      "extendedSessionIdleTimeoutInSeconds": 30,
+      "maxConcurrentActivityFunctions": 10,
+      "maxConcurrentOrchestratorFunctions": 10
     }
   }
 }
