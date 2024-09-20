@@ -25,19 +25,22 @@ public static class SafeOrchestration
     {
         //        ILogger logger = context.CreateReplaySafeLogger(nameof(RunOrchestrator));
         Product product = Product.FromContext(context);
-        // alpha:
+
+        product.ActivityName = nameof(StepAlpha);
         product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
         if (product.LastState != ActivityState.Active)
             return product.LastState.ToString();
         product = await context.CallActivityAsync<Product>(nameof(StepAlpha), product);
         product = await context.CallActivityAsync<Product>(nameof(PostProcessAsync), product);
-        // bravo:
+        
+        product.ActivityName = nameof(StepBravo);
         product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
         if (product.LastState != ActivityState.Active)
             return product.LastState.ToString();
         product = await context.CallActivityAsync<Product>(nameof(StepBravo), product);
         product = await context.CallActivityAsync<Product>(nameof(PostProcessAsync), product);
-        // charlie: 
+        
+        product.ActivityName = nameof(StepCharlie);
         product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
         if (product.LastState != ActivityState.Active)
             return product.LastState.ToString();

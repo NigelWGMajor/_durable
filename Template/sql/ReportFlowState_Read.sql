@@ -26,6 +26,7 @@ begin
            TimeUpdated,
            Notes,
            ProcessId,
+           [Count],
            InstanceNumber
         from 
             rpt.ReportFlowStates

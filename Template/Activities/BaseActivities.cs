@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc.Diagnostics;
 using System.Diagnostics;
 using Microsoft.Azure.Functions.Worker;
 
+
 // Add this using directive
 
 /// <summary>
@@ -41,11 +42,12 @@ public static class BaseActivities
 /// If the product.LastState == Active on return, the orchestrator should 
 /// launch the activity. 
 /// </summary>
-    [Function("PreProcessAsync")] 
+    [Function(nameof(PreProcessAsync))] 
     public static async Task<Product> PreProcessAsync(
-        string activityName, // this is the name of the required activity as seen by the Orchestration framework
+        [ActivityTrigger]
+        //string activityName, // this is the name of the required activity as seen by the Orchestration framework
         Product product, // this contains the inbound data
-        TaskOrchestrationContext context
+        FunctionContext context
     )
     {
         // this is the safety wrapper for the activity.
@@ -60,7 +62,7 @@ public static class BaseActivities
         {
             case ActivityState.unknown:
                 // this is a brand new record, never saved to the database yet
-                current.ActivityName = activityName;
+                current.ActivityName = product.ActivityName;
                 current.MarkStartTime();
                 current.InstanceNumber = 1;
                 current.KeyId = keyId;
@@ -110,7 +112,7 @@ public static class BaseActivities
                 break;
             case ActivityState.Completed:
                 // this typically means that the previous activity was successful.
-                current.ActivityName = activityName;
+                current.ActivityName = product.ActivityName;
                 current.State = ActivityState.Ready;
                 break;
             case ActivityState.Failed:
@@ -129,17 +131,18 @@ public static class BaseActivities
 
         await _store.WriteActivityStateAsync(current);
 
-        if (current.State == ActivityState.Deferred)
-        {
-            // use the Durable Function framework to delay the orchestration without waste
-            await context.CreateTimer(Settings.DelayTime, CancellationToken.None);
-        }
+        // if (current.State == ActivityState.Deferred)
+        // {
+        //     // use the Durable Function framework to delay the orchestration without waste
+        //     await context.CreateTimer(Settings.DelayTime, CancellationToken.None);
+        // }
         current.UpdateProductState(product);        
         return product;
     }
-    [Function("PostProcessAsync")] 
-    public static async Task<Product> PostProcessAsync(Product product)
+    [Function(nameof(PostProcessAsync))] 
+    public static async Task<Product> PostProcessAsync([ActivityTrigger] Product product)
     {
+          
         var keyId = product.Payload.Identity;
         var current = await _store.ReadActivityStateAsync(keyId);
         current.MarkEndTime();
@@ -148,8 +151,8 @@ public static class BaseActivities
         current.UpdateProductState(product);
         return product;
     }
-    [Function("FinishAsync")] 
-    public static async Task<Product> FinishAsync(Product product)
+    [Function(nameof(FinishAsync))] 
+    public static async Task<Product> FinishAsync([ActivityTrigger] Product product)
     {
         var keyId = product.Payload.Identity;
         var current = await _store.ReadActivityStateAsync(keyId);
