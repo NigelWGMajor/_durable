@@ -22,7 +22,7 @@ public static class TestActivities
             TimeStarted = DateTime.UtcNow,
             State = ActivityState.Active,
             ProcessId = System.Diagnostics.Process.GetCurrentProcess().ProcessName,
-            Notes = "Process starting"
+            Notes = "Activity Alpha starting"
         });
         return product;
     }
@@ -36,7 +36,7 @@ public static class TestActivities
             TimeStarted = DateTime.UtcNow,
             State = ActivityState.Active,
             ProcessId = System.Diagnostics.Process.GetCurrentProcess().ProcessName,
-            Notes = "Process starting"
+            Notes = "Activity Bravo starting"
         });
         return product;
     }
@@ -50,7 +50,7 @@ public static class TestActivities
             TimeStarted = DateTime.UtcNow,
             State = ActivityState.Active,
             ProcessId = System.Diagnostics.Process.GetCurrentProcess().ProcessName,
-            Notes = "Process starting"
+            Notes = "Activity Charlie starting"
         });
         return product;
     }

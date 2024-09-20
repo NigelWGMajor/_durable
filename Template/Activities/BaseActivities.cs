@@ -41,10 +41,11 @@ public static class BaseOrchestration
 /// If the product.LastState == Active on return, the orchestrator should 
 /// launch the activity. 
 /// </summary>
-    [Function(nameof(PreProcessAsync))] 
+    [Function("PreProcessAsync")] 
     public static async Task<Product> PreProcessAsync(
+        string activityName, // this is the name of the required activity as seen by the Orchestration framework
         Product product, // this contains the inbound data
-         FunctionContext context
+        TaskOrchestrationContext context
     )
     {
         // this is the safety wrapper for the activity.
@@ -136,8 +137,8 @@ public static class BaseOrchestration
         current.UpdateProductState(product);        
         return product;
     }
-    [Function(nameof(PostProcessAsync))] 
-    public static async Task<Product> PostProcessAsync(Product product,  FunctionContext context)
+    [Function("PostProcessAsync")] 
+    public static async Task<Product> PostProcessAsync(Product product)
     {
         var keyId = product.Payload.Identity;
         var current = await _store.ReadActivityStateAsync(keyId);
@@ -147,8 +148,8 @@ public static class BaseOrchestration
         current.UpdateProductState(product);
         return product;
     }
-    [Function(nameof(FinishAsync))] 
-    public static async Task<Product> FinishAsync(Product product,  FunctionContext context)
+    [Function("FinishAsync")] 
+    public static async Task<Product> FinishAsync(Product product)
     {
         var keyId = product.Payload.Identity;
         var current = await _store.ReadActivityStateAsync(keyId);
