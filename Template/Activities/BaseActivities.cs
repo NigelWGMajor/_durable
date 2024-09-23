@@ -14,7 +14,7 @@ using System.Runtime.InteropServices;
 // Add this using directive
 
 /// <summary>
-/// This class extends any orchestration to integrate Flow Management
+/// This class extends any (sub) orchestration to integrate Flow Management
 /// in a simple manner.
 /// Essentially it wraps the function calls to allow suppression of the
 /// calls and error detection.

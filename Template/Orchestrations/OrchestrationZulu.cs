@@ -32,50 +32,28 @@ public static class SafeOrchestration
             product = Product.FromContext(context);
             product.ActivityName = nameof(StepAlpha);
         }
+        
         product.Payload.InstanceId = context.InstanceId;
         product.Payload.Id = System.Diagnostics.Process.GetCurrentProcess().Id;
-        logger.LogInformation($"*** Preprocessing Product {product.LastState}");
+        
         product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
-        logger.LogInformation($"*** Returned Product {product.LastState}");
-        if (product.LastState == ActivityState.Redundant)
-            return product.LastState.ToString();
         if (product.LastState == ActivityState.Deferred)
             await context.CreateTimer(TimeSpan.FromSeconds(1 ), CancellationToken.None);
         else if (product.LastState != ActivityState.Active)
         {
             context.ContinueAsNew(product);
-             logger.LogInformation($"*** Restarting Anew as Product {product.LastState}");
             return product.LastState.ToString();
         }
-        product = await context.CallActivityAsync<Product>(nameof(StepAlpha), product);
-        product = await context.CallActivityAsync<Product>(nameof(PostProcessAsync), product);
-
-        // product.ActivityName = nameof(StepBravo);
-        // do
-        // {
-        //     product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
-        //     if (product.LastState == ActivityState.Redundant)
-        //         return product.LastState.ToString();
-        // } while (product.LastState != ActivityState.Active);
-
-        // product = await context.CallActivityAsync<Product>(nameof(StepBravo), product);
-        // product = await context.CallActivityAsync<Product>(nameof(PostProcessAsync), product);
-
-        // product.ActivityName = nameof(StepCharlie);
-        // do
-        // {
-        //     product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
-        //     if (product.LastState == ActivityState.Redundant)
-        //         return product.LastState.ToString();
-        // } while (product.LastState != ActivityState.Active);
-        // product = await context.CallActivityAsync<Product>(nameof(StepCharlie), product);
-        // product = await context.CallActivityAsync<Product>(nameof(PostProcessAsync), product);
-        // // finalize:
-        // product = await context.CallActivityAsync<Product>(nameof(FinishAsync), product);
-
-        string output = JsonSerializer.Serialize(product.ActivityHistory, _jsonOptions);
-
-        return output;
+        if (product.LastState != ActivityState.Redundant)
+        {
+            product = await context.CallActivityAsync<Product>(nameof(StepAlpha), product);
+            product = await context.CallActivityAsync<Product>(nameof(PostProcessAsync), product);
+            return JsonSerializer.Serialize(product.ActivityHistory, _jsonOptions);
+        }
+        else
+        {
+            return "re-entrancy blocked";
+        }
     }
 
     // // //
@@ -92,11 +70,6 @@ public static class SafeOrchestration
         // Function input comes from the request content (json)
         string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
         var inputData = JsonSerializer.Deserialize<InputData>(requestBody);
-
-        // // additional data could be read from the url:
-        // var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
-        // string extraData = query["extraData"];
-        // // this could allow us to inject test behaviors.
 
         var product = new Product();
         product.LastState = ActivityState.Ready;
