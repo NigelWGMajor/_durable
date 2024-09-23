@@ -8,6 +8,7 @@ using static TestActivities;
 using static BaseActivities;
 using System.Net.Mime;
 using System.Diagnostics.Tracing;
+using Microsoft.AspNetCore.CookiePolicy;
 
 public static class SafeOrchestration
 {
@@ -32,29 +33,115 @@ public static class SafeOrchestration
             product = Product.FromContext(context);
             product.ActivityName = nameof(StepAlpha);
         }
-        
-        product.Payload.InstanceId = context.InstanceId;
+
         product.Payload.Id = System.Diagnostics.Process.GetCurrentProcess().Id;
-        
-        product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
-        if (product.LastState == ActivityState.Deferred)
-            await context.CreateTimer(TimeSpan.FromSeconds(1 ), CancellationToken.None);
-        else if (product.LastState != ActivityState.Active)
+
+        if (product.MayContinue)
         {
-            context.ContinueAsNew(product);
-            return product.LastState.ToString();
+            product.ActivityName = nameof(StepAlpha);
+            product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
+            if (product.LastState == ActivityState.Deferred)
+                await context.CreateTimer(TimeSpan.FromSeconds(1), CancellationToken.None);
+            else if (product.LastState != ActivityState.Active)
+            {
+                context.ContinueAsNew(product);
+                return product.LastState.ToString();
+            }
+            if (product.LastState != ActivityState.Redundant)
+            {
+                product = await context.CallActivityAsync<Product>(product.ActivityName, product);
+                product = await context.CallActivityAsync<Product>(
+                    nameof(PostProcessAsync),
+                    product
+                );
+                //        return JsonSerializer.Serialize(product.ActivityHistory, _jsonOptions);
+            }
+            else
+            {
+                return "re-entrancy blocked";
+            }
         }
-        if (product.LastState != ActivityState.Redundant)
+
+        if (product.MayContinue)
         {
-            product = await context.CallActivityAsync<Product>(nameof(StepAlpha), product);
-            product = await context.CallActivityAsync<Product>(nameof(PostProcessAsync), product);
-            return JsonSerializer.Serialize(product.ActivityHistory, _jsonOptions);
+            product.ActivityName = nameof(StepBravo);
+            product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
+            if (product.LastState == ActivityState.Deferred)
+                await context.CreateTimer(TimeSpan.FromSeconds(1), CancellationToken.None);
+            else if (product.LastState != ActivityState.Active)
+            {
+                context.ContinueAsNew(product);
+                return product.LastState.ToString();
+            }
+            if (product.LastState != ActivityState.Redundant)
+            {
+                product = await context.CallActivityAsync<Product>(product.ActivityName, product);
+                product = await context.CallActivityAsync<Product>(
+                    nameof(PostProcessAsync),
+                    product
+                );
+                //        return JsonSerializer.Serialize(product.ActivityHistory, _jsonOptions);
+            }
+            else
+            {
+                return "re-entrancy blocked";
+            }
         }
-        else
+
+        if (product.MayContinue)
         {
-            return "re-entrancy blocked";
+            product.ActivityName = nameof(StepCharlie);
+            product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
+            if (product.LastState == ActivityState.Deferred)
+                await context.CreateTimer(TimeSpan.FromSeconds(1), CancellationToken.None);
+            else if (product.LastState != ActivityState.Active)
+            {
+                context.ContinueAsNew(product);
+                return JsonSerializer.Serialize(product.ActivityHistory, _jsonOptions);
+            }
+            if (product.LastState != ActivityState.Redundant)
+            {
+                product = await context.CallActivityAsync<Product>(product.ActivityName, product);
+                product = await context.CallActivityAsync<Product>(
+                    nameof(PostProcessAsync),
+                    product
+                );
+                return JsonSerializer.Serialize(product.ActivityHistory, _jsonOptions);
+            }
+            else
+            {
+                return "re-entrancy blocked";
+            }
         }
+        return JsonSerializer.Serialize(product.ActivityHistory, _jsonOptions);
     }
+
+    // private static async Task<Product> ProcessProductAsync(
+    //     string activityName,
+    //     TaskOrchestrationContext context,
+    //     Product product
+    // )
+    // {
+    //     product.ActivityName = activityName;
+    //     product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
+    //     if (product.LastState == ActivityState.Deferred)
+    //         await context.CreateTimer(TimeSpan.FromSeconds(1), CancellationToken.None);
+    //     else if (product.LastState != ActivityState.Active)
+    //     {
+    //         context.ContinueAsNew(product);
+    //         return product;
+    //     }
+    //     if (product.LastState != ActivityState.Redundant)
+    //     {
+    //         product = await context.CallActivityAsync<Product>(activityName, product);
+    //         product = await context.CallActivityAsync<Product>(nameof(PostProcessAsync), product);
+    //         return product;
+    //     }
+    //     else
+    //     {
+    //         return product;
+    //     }
+    // }
 
     // // //
     // The main external entrypoint requires the InputData in json form as application/json content.
@@ -75,7 +162,7 @@ public static class SafeOrchestration
         product.LastState = ActivityState.Ready;
         product.Payload.Name = inputData.Name;
         product.Payload.InstanceId = inputData.Identity;
-        
+
         string instanceId = await client.ScheduleNewOrchestrationInstanceAsync(
             nameof(RunOrchestrator),
             product

@@ -17,5 +17,6 @@ public class Product
     {
         return context.GetInput<Product>();
     }
+    public bool MayContinue => LastState != ActivityState.Redundant;
     public List<string> Errors = new List<string>();
 }

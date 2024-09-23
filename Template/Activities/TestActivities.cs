@@ -13,14 +13,15 @@ public static class TestActivities
     //     logger.LogInformation("Saying hello to {name}.", name);
     //     return $"Hello {name}!";
     // }
-    
+
     [Function(nameof(StepAlpha))]
-    public static Product StepAlpha([ActivityTrigger] Product product, FunctionContext context)
+    public static async Task<Product> StepAlpha([ActivityTrigger] Product product, FunctionContext context)
     {
         try
         {
             // PRODUCT PROCESSING HERE:
 
+            await Task.Delay(TimeSpan.FromSeconds(30));
 
             // PRODUCT NOW PROCESSED.
             product.LastState = ActivityState.Completed;
@@ -41,12 +42,13 @@ public static class TestActivities
     }
 
     [Function(nameof(StepBravo))]
-    public static Product StepBravo([ActivityTrigger] Product product, FunctionContext context)
+    public static async Task<Product> StepBravo([ActivityTrigger] Product product, FunctionContext context)
     {
         try
         {
             // PRODUCT PROCESSING HERE:
 
+            await Task.Delay(TimeSpan.FromSeconds(30));
 
             // PRODUCT NOW PROCESSED.
             product.LastState = ActivityState.Completed;
@@ -65,13 +67,15 @@ public static class TestActivities
             return product;
         }
     }
-     [Function(nameof(StepCharlie))]
-    public static Product StepCharlie([ActivityTrigger] Product product, FunctionContext context)
+
+    [Function(nameof(StepCharlie))]
+    public static async Task<Product> StepCharlie([ActivityTrigger] Product product, FunctionContext context)
     {
         try
         {
             // PRODUCT PROCESSING HERE:
 
+            await Task.Delay(TimeSpan.FromSeconds(30));
 
             // PRODUCT NOW PROCESSED.
             product.LastState = ActivityState.Completed;
