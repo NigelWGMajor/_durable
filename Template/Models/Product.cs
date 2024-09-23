@@ -17,4 +17,5 @@ public class Product
     {
         return context.GetInput<Product>();
     }
+    public List<string> Errors = new List<string>();
 }

@@ -8,7 +8,8 @@ using System.Diagnostics;
 public class Payload
 {
     public string Name { get; set; } = "";
-    public string Identity { get; set; } = "";
+    public string InstanceId { get; set; } = "";
+    public int Id { get; set; }
     public ActivityState[] TestStates { get; set; } = Array.Empty<ActivityState>();
     // insert whatever your domain needs!
 }

@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using System.Diagnostics;
+using Google.Protobuf.WellKnownTypes;
 
 namespace Degreed.SafeTest
 {
@@ -12,6 +13,12 @@ namespace Degreed.SafeTest
         [JsonPropertyName("ActivityName")]
         public string ActivityName { get; set; } = "";
 
+        [JsonPropertyName("ActivityStateName")]
+        public string ActivityStateName 
+        {
+            get => $"{State}";
+            set { State = (ActivityState)System.Enum.Parse( typeof(ActivityState), value); }
+        }
         [JsonIgnore]
         public ActivityState State { get; set; } = ActivityState.unknown;
 
@@ -61,8 +68,10 @@ namespace Degreed.SafeTest
         /// </summary>
         /// <param name="record"></param>
         /// <param name="product"></param>
-        public static void UpdateProductState(this ActivityRecord record, Product product)
+        public static void SyncRecordAndProduct(this ActivityRecord record, Product product)
         {
+            record.InstanceNumber++;
+            record.MarkEndTime();
             product.ActivityHistory.Add(record);
             product.LastState = record.State;
         }

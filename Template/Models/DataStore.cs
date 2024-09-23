@@ -75,7 +75,7 @@ public class DataStore : IDataStore
         }
         catch (Exception ex)
         {
-            throw new FlowManagerException("Unable to read current ActivityRecord", ex);
+            throw new FlowManagerRetryableException("Unable to read current ActivityRecord", ex);
         }
     }
 
@@ -115,7 +115,7 @@ public class DataStore : IDataStore
         }
         catch (Exception ex)
         {
-            throw new FlowManagerException("Unable to write current ActivityRecord", ex);
+            throw new FlowManagerRetryableException("Unable to write current ActivityRecord", ex);
         }
     }
 }

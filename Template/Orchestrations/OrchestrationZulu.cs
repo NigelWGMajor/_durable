@@ -7,6 +7,7 @@ using Degreed.SafeTest;
 using static TestActivities;
 using static BaseActivities;
 using System.Net.Mime;
+using System.Diagnostics.Tracing;
 
 public static class SafeOrchestration
 {
@@ -31,6 +32,8 @@ public static class SafeOrchestration
             product = Product.FromContext(context);
             product.ActivityName = nameof(StepAlpha);
         }
+        product.Payload.InstanceId = context.InstanceId;
+        product.Payload.Id = System.Diagnostics.Process.GetCurrentProcess().Id;
         logger.LogInformation($"*** Preprocessing Product {product.LastState}");
         product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
         logger.LogInformation($"*** Returned Product {product.LastState}");
@@ -98,7 +101,7 @@ public static class SafeOrchestration
         var product = new Product();
         product.LastState = ActivityState.Ready;
         product.Payload.Name = inputData.Name;
-        product.Payload.Identity = inputData.Identity;
+        product.Payload.InstanceId = inputData.Identity;
         
         string instanceId = await client.ScheduleNewOrchestrationInstanceAsync(
             nameof(RunOrchestrator),

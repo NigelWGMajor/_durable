@@ -17,15 +17,34 @@ public static class TestActivities
     [Function(nameof(StepAlpha))]
     public static Product StepAlpha([ActivityTrigger] Product product, FunctionContext context)
     {
-        product.ActivityHistory.Add(new ActivityRecord
+        try
         {
-            ActivityName = "StepAlpha",
-            TimeStarted = DateTime.UtcNow,
-            State = ActivityState.Active,
-            ProcessId = System.Diagnostics.Process.GetCurrentProcess().ProcessName,
-            Notes = "Activity Alpha starting"
-        });
-        return product;
+            // PRODUCT PROCESSING HERE:
+
+
+            // PRODUCT NOW PROCESSED.
+            ///  // product.ActivityHistory.Add(new ActivityRecord
+            // {
+            //     ActivityName = "StepAlpha",
+            //     TimeStarted = DateTime.UtcNow,
+            //     State = ActivityState.Active,
+            // System.Diagnostics.Process.GetCurrentProcess().ProcessName,
+            // });
+            product.LastState = ActivityState.Completed;
+            return product;
+        }
+        catch (FlowManagerFatalException ex)
+        {
+            product.LastState = ActivityState.Failed;
+            product.Errors.Add(ex.Message);
+            return product;
+        }
+        catch (FlowManagerRetryableException ex)
+        {
+            product.LastState = ActivityState.Stalled;
+            product.Errors.Add(ex.Message);
+            return product;
+        }
     }
 
     [Function(nameof(StepBravo))]

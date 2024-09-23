@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Mvc.Diagnostics;
 using System.Diagnostics;
 using Microsoft.Azure.Functions.Worker;
+using System.Runtime.InteropServices;
 
 
 // Add this using directive
@@ -35,7 +36,7 @@ public static class BaseActivities
         if (temp != null)
             _store = new DataStore(temp);
         else
-            throw new FlowManagerException("MetadataStore connection not provided");
+            throw new FlowManagerRetryableException("MetadataStore connection not provided");
     }
 /// <summary>
 /// This checks and updates metadata prior to calling an activity.
@@ -53,29 +54,34 @@ public static class BaseActivities
         // this is the safety wrapper for the activity.
         // This controls whether the activity is even fired,
         // and works with the metadata.
-        var keyId = product.Payload.Identity;
+        var keyId = product.Payload.InstanceId;
         // read the current activity
         var current = await _store.ReadActivityStateAsync(keyId);
         // Choose actions dependent on oncoming state
         // // Part 1 of 4: Respond to the Inbound State:
+        current.ProcessId = $"{product.Payload.InstanceId}|{product.Payload.Id}";
         switch (current.State)
         {
             case ActivityState.unknown:
                 // this is a brand new record, never saved to the database yet
                 current.ActivityName = product.ActivityName;
                 current.MarkStartTime();
-                current.InstanceNumber = 1;
+                current.InstanceNumber = 0;
                 current.KeyId = keyId;
                 current.State = ActivityState.Ready;
+                current.Notes = "Initial record";
                 break;
             case ActivityState.Deferred:
                 // in these cases regard as Ready.
                 current.MarkStartTime();
                 current.State = ActivityState.Ready;
+                current.Notes = "Deferred for possible resource depletion";
+                current.Count++;
                 break;
             case ActivityState.Ready:
-                current.MarkStartTime();
+                 
                 current.State = ActivityState.Active;
+                current.Notes = "Pending Execution";
                 break;
             case ActivityState.Redundant:
                 // the item is blocked from this execution thread.
@@ -83,6 +89,7 @@ public static class BaseActivities
                 // we may not ever encounter this here, but should just return.
                 // the plan is that once this is set we just let the orchestrator
                 // run to completion and/or terminate it.
+
                 return product;
             case ActivityState.Active:
                 // another instance is already active
@@ -90,36 +97,43 @@ public static class BaseActivities
                 if (NowPastLimit(current.TimeStarted, Settings.MaximumActivityTime))
                 {
                     current.State = ActivityState.Stuck;
+                    current.Notes = "maximum activity run time exceeded";
                 }
                 else
                 {
                     // otherwise we should mark this instance as redundant
                     current.State = ActivityState.Redundant;
+                    current.Notes = "Re-entrant behavior detected";
                 }
                 break;
             case ActivityState.Stuck:
                 // this should never occur
                 break;
             case ActivityState.Stalled:
-                current.InstanceNumber++;
+                current.Count++;
                 if (current.InstanceNumber > Settings.StallCap)
                 {
                     current.MarkEndTime();
                     current.State = ActivityState.Failed;
+                    current.Notes = "Maximum retry count exceeded";
+
                 }
                 else
                 {
                     current.MarkStartTime();
                     current.State = ActivityState.Ready;
+                    current.Notes = "Retrying after retryable failure";
                 }
                 break;
             case ActivityState.Completed:
                 // this typically means that the previous activity was successful.
                 current.ActivityName = product.ActivityName;
                 current.State = ActivityState.Ready;
+                current.Notes = "Completed successfully";
                 break;
             case ActivityState.Failed:
                 // ===
+                current.Notes = "Failed fatally";
                 break;
         }
 
@@ -131,33 +145,40 @@ public static class BaseActivities
                 current.State = ActivityState.Deferred;
             }
         }
-        
+        current.SyncRecordAndProduct(product);        
         await _store.WriteActivityStateAsync(current);
-
-        current.UpdateProductState(product);        
         return product;
     }
     [Function(nameof(PostProcessAsync))] 
     public static async Task<Product> PostProcessAsync([ActivityTrigger] Product product)
     {
           
-        var keyId = product.Payload.Identity;
+        var keyId = product.Payload.InstanceId;
         var current = await _store.ReadActivityStateAsync(keyId);
         current.MarkEndTime();
         current.State = product.LastState;
+        current.SyncRecordAndProduct(product);
         await _store.WriteActivityStateAsync(current);
-        current.UpdateProductState(product);
-        return product;
+        switch (current.State)
+        {
+            case ActivityState.Stalled: // defer to prevailing Durable Function retry policy
+                throw new FlowManagerRetryableException($"Retryable FlowManager Exception: {product.ActivityHistory}");
+            case ActivityState.Failed: // throw up to orchestrator.
+                throw new FlowManagerFatalException($"Fatal FlowManager Exception: {product.ActivityHistory}");
+            default:
+            return product;
+
+        }
     }
     [Function(nameof(FinishAsync))] 
     public static async Task<Product> FinishAsync([ActivityTrigger] Product product)
     {
-        var keyId = product.Payload.Identity;
+        var keyId = product.Payload.InstanceId;
         var current = await _store.ReadActivityStateAsync(keyId);
-        current.UpdateProductState(product);
+        current.SyncRecordAndProduct(product);
         current.MarkEndTime();
         current.State = ActivityState.Finished;
-        current.UpdateProductState(product);
+        current.SyncRecordAndProduct(product);
         await _store.WriteActivityStateAsync(current);
         return product;
     }
