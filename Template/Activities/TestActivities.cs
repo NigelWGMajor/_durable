@@ -39,7 +39,7 @@ public static class TestActivities
         {
             // PRODUCT PROCESSING HERE:
 
-            await Task.Delay(TimeSpan.FromSeconds(30));
+            await Task.Delay(TimeSpan.FromSeconds(20));
 
             // PRODUCT NOW PROCESSED.
             product.LastState = ActivityState.Completed;
@@ -66,7 +66,7 @@ public static class TestActivities
         {
             // PRODUCT PROCESSING HERE:
 
-            await Task.Delay(TimeSpan.FromSeconds(30));
+            await Task.Delay(TimeSpan.FromSeconds(10));
 
             // PRODUCT NOW PROCESSED.
             product.LastState = ActivityState.Completed;

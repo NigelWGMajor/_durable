@@ -50,6 +50,7 @@ public static class BaseOrchestration
         FunctionContext context
     )
     {
+         await Task.Delay(TimeSpan.FromSeconds(1));
         // this is the safety wrapper for the activity.
         // This controls whether the activity is even fired,
         // and works with the metadata.
@@ -67,7 +68,7 @@ public static class BaseOrchestration
                 {
                     current.ActivityName = product.ActivityName;
                 }
-                current.MarkStartTime();
+               // current.MarkStartTime();
                 current.InstanceNumber = 0;
                 current.KeyId = keyId;
                 current.State = ActivityState.Ready;
@@ -75,13 +76,13 @@ public static class BaseOrchestration
                 break;
             case ActivityState.Deferred:
                 // in these cases regard as Ready.
-                current.MarkStartTime();
+                //current.MarkStartTime();
                 current.State = ActivityState.Ready;
                 current.Notes = "Deferred for possible resource depletion";
                 current.Count++;
                 break;
             case ActivityState.Ready:
-                 
+               // current.MarkStartTime(); 
                 current.State = ActivityState.Active;
                 current.Notes = "Pending Execution";
                 break;
@@ -154,7 +155,7 @@ public static class BaseOrchestration
     [Function(nameof(PostProcessAsync))] 
     public static async Task<Product> PostProcessAsync([ActivityTrigger] Product product)
     {
-          
+           await Task.Delay(TimeSpan.FromSeconds(2));
         var keyId = product.Payload.InstanceId;
         var current = await _store.ReadActivityStateAsync(keyId);
         current.MarkEndTime();

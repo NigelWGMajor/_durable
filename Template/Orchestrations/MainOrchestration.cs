@@ -18,7 +18,7 @@ namespace Orchestrations;
 
 public static class SafeOrchestration
 {
-    // CONSTANTS FOR RETRY POLICY
+    // CONSTANTS FOR NORMAL RETRY POLICY
     private static Int32 _number_of_tries_ = 10;
     private static TimeSpan _initial_delay_ = TimeSpan.FromSeconds(60);
     private static double _backoff_coefficient_ = 1.414;
@@ -57,22 +57,25 @@ public static class SafeOrchestration
         var options = new TaskOptions(TaskRetryOptions.FromRetryPolicy(policy));
 
 
-        /// /// /// /// /// /// /// /// /// /// /// /// 
-        /// 
+/// /// /// /// /// /// /// /// /// /// /// /// 
+/// 
 
         product = await context.CallSubOrchestratorAsync<Product>(nameof(RunOrchestrationAlpha), product, options.WithInstanceId($"{id}Alpha)"));
 
         if (product.LastState != ActivityState.Redundant)
         {
-     //       product = await context.CallSubOrchestratorAsync<Product>(nameof(RunOrchestrationBravo), product, options.WithInstanceId($"{id}Bravo)"));
+            product = await context.CallSubOrchestratorAsync<Product>(nameof(RunOrchestrationBravo), product, options.WithInstanceId($"{id}Bravo)"));
         }
         if (product.LastState != ActivityState.Redundant)
         {
-     //       product = await context.CallSubOrchestratorAsync<Product>(nameof(RunOrchestrationCharlie), product, options.WithInstanceId($"{id}Charlie)"));
+            product = await context.CallSubOrchestratorAsync<Product>(nameof(RunOrchestrationCharlie), product, options.WithInstanceId($"{id}Charlie)"));
         }
        
         return JsonSerializer.Serialize(product.ActivityHistory, _jsonOptions);
 
+/// 
+/// /// /// /// /// /// /// /// /// /// /// ///
+        
     }
 
     [Function("OrchestrationZulu_HttpStart")]
