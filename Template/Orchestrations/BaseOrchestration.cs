@@ -10,8 +10,7 @@ using System.Diagnostics;
 using Microsoft.Azure.Functions.Worker;
 using System.Runtime.InteropServices;
 
-
-// Add this using directive
+namespace Orchestrations;
 
 /// <summary>
 /// This class extends any (sub) orchestration to integrate Flow Management
@@ -20,11 +19,11 @@ using System.Runtime.InteropServices;
 /// calls and error detection.
 /// Any orchestration class that needs this should derive from this class.
 /// </summary>
-public static class BaseActivities
+public static class BaseOrchestration
 {
     private static DataStore? _store;
 
-    static BaseActivities()
+    static BaseOrchestration()
     {
         var builder = new ConfigurationBuilder()
             .SetBasePath(System.IO.Directory.GetCurrentDirectory())
@@ -51,6 +50,7 @@ public static class BaseActivities
         FunctionContext context
     )
     {
+         await Task.Delay(TimeSpan.FromSeconds(1));
         // this is the safety wrapper for the activity.
         // This controls whether the activity is even fired,
         // and works with the metadata.
@@ -68,7 +68,7 @@ public static class BaseActivities
                 {
                     current.ActivityName = product.ActivityName;
                 }
-                current.MarkStartTime();
+               // current.MarkStartTime();
                 current.InstanceNumber = 0;
                 current.KeyId = keyId;
                 current.State = ActivityState.Ready;
@@ -76,13 +76,13 @@ public static class BaseActivities
                 break;
             case ActivityState.Deferred:
                 // in these cases regard as Ready.
-                current.MarkStartTime();
+                //current.MarkStartTime();
                 current.State = ActivityState.Ready;
                 current.Notes = "Deferred for possible resource depletion";
                 current.Count++;
                 break;
             case ActivityState.Ready:
-                 
+               // current.MarkStartTime(); 
                 current.State = ActivityState.Active;
                 current.Notes = "Pending Execution";
                 break;
@@ -155,7 +155,7 @@ public static class BaseActivities
     [Function(nameof(PostProcessAsync))] 
     public static async Task<Product> PostProcessAsync([ActivityTrigger] Product product)
     {
-          
+           await Task.Delay(TimeSpan.FromSeconds(2));
         var keyId = product.Payload.InstanceId;
         var current = await _store.ReadActivityStateAsync(keyId);
         current.MarkEndTime();
