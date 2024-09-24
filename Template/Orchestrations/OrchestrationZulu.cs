@@ -36,10 +36,9 @@ public static class SafeOrchestration
 
         product.Payload.Id = System.Diagnostics.Process.GetCurrentProcess().Id;
 
-        if (product.MayContinue)
-        {
-            product.ActivityName = nameof(StepAlpha);
-            product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
+        // if (product.MayContinue)
+        // {
+                       product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
             if (product.LastState == ActivityState.Deferred)
                 await context.CreateTimer(TimeSpan.FromSeconds(1), CancellationToken.None);
             else if (product.LastState != ActivityState.Active)
@@ -47,23 +46,22 @@ public static class SafeOrchestration
                 context.ContinueAsNew(product);
                 return product.LastState.ToString();
             }
-            if (product.LastState != ActivityState.Redundant)
+            if (product.LastState != ActivityState.Redundant && product.ActivityName == nameof(StepAlpha))
             {
                 product = await context.CallActivityAsync<Product>(product.ActivityName, product);
                 product = await context.CallActivityAsync<Product>(
                     nameof(PostProcessAsync),
                     product
                 );
-                //        return JsonSerializer.Serialize(product.ActivityHistory, _jsonOptions);
             }
             else
             {
                 return "re-entrancy blocked";
             }
-        }
+        // }
 
-        if (product.MayContinue)
-        {
+        // if (product.MayContinue)
+        // {
             product.ActivityName = nameof(StepBravo);
             product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
             if (product.LastState == ActivityState.Deferred)
@@ -73,23 +71,22 @@ public static class SafeOrchestration
                 context.ContinueAsNew(product);
                 return product.LastState.ToString();
             }
-            if (product.LastState != ActivityState.Redundant)
+            if (product.LastState != ActivityState.Redundant && product.ActivityName == nameof(StepBravo))
             {
                 product = await context.CallActivityAsync<Product>(product.ActivityName, product);
                 product = await context.CallActivityAsync<Product>(
                     nameof(PostProcessAsync),
                     product
                 );
-                //        return JsonSerializer.Serialize(product.ActivityHistory, _jsonOptions);
             }
             else
             {
                 return "re-entrancy blocked";
             }
-        }
+        // }
 
-        if (product.MayContinue)
-        {
+        // if (product.MayContinue)
+        // {
             product.ActivityName = nameof(StepCharlie);
             product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
             if (product.LastState == ActivityState.Deferred)
@@ -99,7 +96,7 @@ public static class SafeOrchestration
                 context.ContinueAsNew(product);
                 return JsonSerializer.Serialize(product.ActivityHistory, _jsonOptions);
             }
-            if (product.LastState != ActivityState.Redundant)
+            if (product.LastState != ActivityState.Redundant && product.ActivityName == nameof(StepCharlie))
             {
                 product = await context.CallActivityAsync<Product>(product.ActivityName, product);
                 product = await context.CallActivityAsync<Product>(
@@ -112,8 +109,8 @@ public static class SafeOrchestration
             {
                 return "re-entrancy blocked";
             }
-        }
-        return JsonSerializer.Serialize(product.ActivityHistory, _jsonOptions);
+        // }
+       //return JsonSerializer.Serialize(product.ActivityHistory, _jsonOptions);
     }
 
     // private static async Task<Product> ProcessProductAsync(

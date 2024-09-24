@@ -64,7 +64,10 @@ public static class BaseActivities
         {
             case ActivityState.unknown:
                 // this is a brand new record, never saved to the database yet
-                current.ActivityName = product.ActivityName;
+                if (String.IsNullOrEmpty(current.ActivityName))
+                {
+                    current.ActivityName = product.ActivityName;
+                }
                 current.MarkStartTime();
                 current.InstanceNumber = 0;
                 current.KeyId = keyId;
