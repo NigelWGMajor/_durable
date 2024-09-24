@@ -10,8 +10,7 @@ using System.Diagnostics;
 using Microsoft.Azure.Functions.Worker;
 using System.Runtime.InteropServices;
 
-
-// Add this using directive
+namespace Orchestrations;
 
 /// <summary>
 /// This class extends any (sub) orchestration to integrate Flow Management
@@ -20,11 +19,11 @@ using System.Runtime.InteropServices;
 /// calls and error detection.
 /// Any orchestration class that needs this should derive from this class.
 /// </summary>
-public static class BaseActivities
+public static class BaseOrchestration
 {
     private static DataStore? _store;
 
-    static BaseActivities()
+    static BaseOrchestration()
     {
         var builder = new ConfigurationBuilder()
             .SetBasePath(System.IO.Directory.GetCurrentDirectory())

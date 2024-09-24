@@ -2,18 +2,9 @@ using Microsoft.Azure.Functions.Worker;
 using Degreed.SafeTest;
 using System.Diagnostics;
 
-[DebuggerStepThrough]
+//[DebuggerStepThrough]
 public static class TestActivities
 {
-    // [Function(nameof(SayHello))]
-    // // this was the original sample.
-    // public static string SayHello([ActivityTrigger] string name, FunctionContext executionContext)
-    // {
-    //     ILogger logger = executionContext.GetLogger("SayHello");
-    //     logger.LogInformation("Saying hello to {name}.", name);
-    //     return $"Hello {name}!";
-    // }
-
     [Function(nameof(StepAlpha))]
     public static async Task<Product> StepAlpha([ActivityTrigger] Product product, FunctionContext context)
     {
