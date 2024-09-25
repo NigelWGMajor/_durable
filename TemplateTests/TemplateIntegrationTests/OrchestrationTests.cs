@@ -29,12 +29,9 @@ public class OrchestrationTests
         {
             Name = "John",
             Identity = "30",
-            TestStates =
-            [
-                ActivityState.Completed,
-                ActivityState.Completed,
-                ActivityState.Completed
-            ]
+            TestStates = ""
+           
+                           ]
         };
         // Serialize the model to JSON
         string json = JsonSerializer.Serialize(model);

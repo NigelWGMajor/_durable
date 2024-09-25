@@ -30,13 +30,18 @@ public static class OrchestrationCharlie
         product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
         if (product.LastState == ActivityState.Deferred)
             await context.CreateTimer(TimeSpan.FromSeconds(1), CancellationToken.None);
+        else if (product.LastState == ActivityState.Redundant)
+        {
+            await context.CreateTimer(TimeSpan.FromHours(1), CancellationToken.None);
+            return product;
+        }
         else if (product.LastState != ActivityState.Active)
         {
             context.ContinueAsNew(product);
             return product;
         }
         if (
-            product.LastState != ActivityState.Redundant
+            product.LastState != ActivityState.Redundant 
             && product.ActivityName == _operation_name_
         )
         {
@@ -46,8 +51,7 @@ public static class OrchestrationCharlie
         }
         else
         {
-            return product;        
+            return product;
         }
     }
 }
-

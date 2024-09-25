@@ -12,7 +12,7 @@ namespace TemplateIntegrationTests
     public string Identity { get; set; } = "";
 
     [JsonPropertyName("testStates")]
-    public ActivityState[] TestStates { get; set; } = [];
+    public string TestStates { get; set; } = "";
 }
     public enum ActivityState
     {

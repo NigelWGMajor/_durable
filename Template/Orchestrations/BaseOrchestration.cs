@@ -50,25 +50,27 @@ public static class BaseOrchestration
         FunctionContext context
     )
     {
-         await Task.Delay(TimeSpan.FromSeconds(1));
         // this is the safety wrapper for the activity.
         // This controls whether the activity is even fired,
         // and works with the metadata.
         var keyId = product.Payload.InstanceId;
         // read the current activity
         var current = await _store.ReadActivityStateAsync(keyId);
+        current.MarkStartTime();
         // Choose actions dependent on oncoming state
         // // Part 1 of 4: Respond to the Inbound State:
         current.ProcessId = $"{product.Payload.InstanceId}|{product.Payload.Id}";
+        Console.WriteLine($"*** {current.ActivityName} - {current.ActivityStateCode}:{current.ActivityStateName} ***");
         switch (current.State)
         {
+
             case ActivityState.unknown:
                 // this is a brand new record, never saved to the database yet
                 if (String.IsNullOrEmpty(current.ActivityName))
                 {
                     current.ActivityName = product.ActivityName;
                 }
-               // current.MarkStartTime();
+                //current.MarkStartTime();
                 current.InstanceNumber = 0;
                 current.KeyId = keyId;
                 current.State = ActivityState.Ready;
@@ -76,13 +78,13 @@ public static class BaseOrchestration
                 break;
             case ActivityState.Deferred:
                 // in these cases regard as Ready.
-                //current.MarkStartTime();
+               // current.MarkStartTime();
                 current.State = ActivityState.Ready;
                 current.Notes = "Deferred for possible resource depletion";
                 current.Count++;
                 break;
             case ActivityState.Ready:
-               // current.MarkStartTime(); 
+                //current.MarkStartTime(); 
                 current.State = ActivityState.Active;
                 current.Notes = "Pending Execution";
                 break;
@@ -92,7 +94,9 @@ public static class BaseOrchestration
                 // we may not ever encounter this here, but should just return.
                 // the plan is that once this is set we just let the orchestrator
                 // run to completion and/or terminate it.
-
+                current.State = ActivityState.Active;
+                await _store.WriteActivityStateAsync(current);
+                product.LastState = ActivityState.Redundant;
                 return product;
             case ActivityState.Active:
                 // another instance is already active
@@ -111,7 +115,7 @@ public static class BaseOrchestration
                 break;
             case ActivityState.Stuck:
                 // this should never occur
-                break;
+                throw new FlowManagerFatalException("Stuck activity");
             case ActivityState.Stalled:
                 current.Count++;
                 if (current.InstanceNumber > Settings.StallCap)
@@ -119,17 +123,17 @@ public static class BaseOrchestration
                     current.MarkEndTime();
                     current.State = ActivityState.Failed;
                     current.Notes = "Maximum retry count exceeded";
-
                 }
                 else
                 {
-                    current.MarkStartTime();
+               //     current.MarkStartTime();
                     current.State = ActivityState.Ready;
                     current.Notes = "Retrying after retryable failure";
                 }
                 break;
             case ActivityState.Completed:
                 // this typically means that the previous activity was successful.
+               // current.MarkStartTime();
                 current.ActivityName = product.ActivityName;
                 current.State = ActivityState.Ready;
                 current.Notes = "Completed successfully";
@@ -138,6 +142,9 @@ public static class BaseOrchestration
                 // ===
                 current.Notes = "Failed fatally";
                 break;
+            case ActivityState.Finished:
+                product.LastState = ActivityState.Redundant;
+                return product;
         }
 
         // Resource checking:
@@ -155,7 +162,6 @@ public static class BaseOrchestration
     [Function(nameof(PostProcessAsync))] 
     public static async Task<Product> PostProcessAsync([ActivityTrigger] Product product)
     {
-           await Task.Delay(TimeSpan.FromSeconds(2));
         var keyId = product.Payload.InstanceId;
         var current = await _store.ReadActivityStateAsync(keyId);
         current.MarkEndTime();
@@ -181,7 +187,6 @@ public static class BaseOrchestration
         current.SyncRecordAndProduct(product);
         current.MarkEndTime();
         current.State = ActivityState.Finished;
-        current.SyncRecordAndProduct(product);
         await _store.WriteActivityStateAsync(current);
         return product;
     }
@@ -189,7 +194,7 @@ public static class BaseOrchestration
     private static bool NowPastLimit(DateTime time, TimeSpan limit)
     {
         var diff = DateTime.UtcNow - time;
-        return diff <= limit;
+        return diff >= limit;
     }
 
     private static bool AreResourcesStressed()

@@ -1,0 +1,29 @@
+POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
+content-type: application/json
+
+{    
+    "name":"Zulu", 
+    "identity":"1000" 
+}
+
+###
+
+POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
+content-type: application/json
+
+{    
+    "name":"Zulu", 
+    "identity":"1001" 
+}
+
+###
+
+POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
+content-type: application/json
+
+{    
+    "name":"Zulu", 
+    "identity":"1022" 
+}
+
+### 

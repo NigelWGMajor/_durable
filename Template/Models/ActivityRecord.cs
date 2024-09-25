@@ -70,8 +70,8 @@ namespace Degreed.SafeTest
         /// <param name="product"></param>
         public static void SyncRecordAndProduct(this ActivityRecord record, Product product)
         {
-            record.InstanceNumber++;
             record.MarkEndTime();
+            record.InstanceNumber++;
             product.ActivityHistory.Add(record);
             product.LastState = record.State;
         }

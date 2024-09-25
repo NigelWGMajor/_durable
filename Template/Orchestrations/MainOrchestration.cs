@@ -25,7 +25,6 @@ public static class SafeOrchestration
     private static TimeSpan? _max_delay_ = TimeSpan.FromMinutes(10);
     private static TimeSpan? _timeout_ = TimeSpan.FromHours(1);
 
-
     private static JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
     {
         WriteIndented = true
@@ -50,32 +49,61 @@ public static class SafeOrchestration
         }
 
         product.Payload.Id = System.Diagnostics.Process.GetCurrentProcess().Id;
-        string id = $"{product.Payload.Id}@{DateTime.UtcNow:u}#";
+        string id = context.InstanceId; //$"{product.Payload.Id}@{DateTime.UtcNow:u}#";
 
         // we can have different policies for different weights of task.
-        RetryPolicy policy = new RetryPolicy(_number_of_tries_, _initial_delay_, _backoff_coefficient_, _max_delay_, _timeout_);
+        RetryPolicy policy = new RetryPolicy(
+            _number_of_tries_,
+            _initial_delay_,
+            _backoff_coefficient_,
+            _max_delay_,
+            _timeout_
+        );
         var options = new TaskOptions(TaskRetryOptions.FromRetryPolicy(policy));
-
-
-/// /// /// /// /// /// /// /// /// /// /// /// 
-/// 
-
-        product = await context.CallSubOrchestratorAsync<Product>(nameof(RunOrchestrationAlpha), product, options.WithInstanceId($"{id}Alpha)"));
-
+        int index = 3;
+        /// /// /// /// /// /// /// /// /// /// /// ///
+        ///
+        context.SetCustomStatus($"{product.LastState}{index:00}");
+        product = await context.CallSubOrchestratorAsync<Product>(
+            nameof(RunOrchestrationAlpha),
+            product,
+            options.WithInstanceId($"{id}Alpha)")
+        );
+        index += 3;
+        context.SetCustomStatus($"{product.LastState}{index:00}");
         if (product.LastState != ActivityState.Redundant)
         {
-            product = await context.CallSubOrchestratorAsync<Product>(nameof(RunOrchestrationBravo), product, options.WithInstanceId($"{id}Bravo)"));
+            product = await context.CallSubOrchestratorAsync<Product>(
+                nameof(RunOrchestrationBravo),
+                product,
+                options.WithInstanceId($"{id}Bravo)")
+            );
         }
+        index += 3;
+        context.SetCustomStatus($"{product.LastState}{index:00}");
         if (product.LastState != ActivityState.Redundant)
         {
-            product = await context.CallSubOrchestratorAsync<Product>(nameof(RunOrchestrationCharlie), product, options.WithInstanceId($"{id}Charlie)"));
+            product = await context.CallSubOrchestratorAsync<Product>(
+                nameof(RunOrchestrationCharlie),
+                product,
+                options.WithInstanceId($"{id}Charlie)")
+            );
         }
-       
+        index++;
+        context.SetCustomStatus($"{product.LastState}{index:00}");
+        if (product.LastState != ActivityState.Redundant)
+        {
+            product = await context.CallActivityAsync<Product>(
+                nameof(FinishAsync),
+                product,
+                options.WithInstanceId($"{id}Final)")
+            );
+        }
+        context.SetCustomStatus($"{product.LastState}{index++:00}");
         return JsonSerializer.Serialize(product.ActivityHistory, _jsonOptions);
 
-/// 
-/// /// /// /// /// /// /// /// /// /// /// ///
-        
+        ///
+        /// /// /// /// /// /// /// /// /// /// /// ///
     }
 
     [Function("OrchestrationZulu_HttpStart")]
@@ -95,9 +123,17 @@ public static class SafeOrchestration
         product.Payload.Name = inputData.Name;
         product.Payload.InstanceId = inputData.Identity;
 
+        StartOrchestrationOptions options = new StartOrchestrationOptions
+        {
+            InstanceId =
+                $"Main-{inputData.Name}-{inputData.Identity}-{DateTime.UtcNow:yy-MM-ddThh:hh:ss:fff}"
+        };
+
         string instanceId = await client.ScheduleNewOrchestrationInstanceAsync(
             nameof(RunMainOrchestrator),
-            product
+            product,
+            options,
+            CancellationToken.None
         );
 
         logger.LogInformation("Started orchestration with ID = '{instanceId}'.", instanceId);
