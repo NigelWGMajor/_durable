@@ -13,6 +13,7 @@ using static Orchestrations.OrchestrationAlpha;
 using static Orchestrations.OrchestrationBravo;
 using static Orchestrations.OrchestrationCharlie;
 using Azure.Core;
+using Microsoft.AspNetCore.Routing.Tree;
 
 namespace Orchestrations;
 
@@ -51,15 +52,6 @@ public static class SafeOrchestration
         product.Payload.Id = System.Diagnostics.Process.GetCurrentProcess().Id;
         string id = context.InstanceId; //$"{product.Payload.Id}@{DateTime.UtcNow:u}#";
 
-        // we can have different policies for different weights of task.
-        RetryPolicy policy = new RetryPolicy(
-            _number_of_tries_,
-            _initial_delay_,
-            _backoff_coefficient_,
-            _max_delay_,
-            _timeout_
-        );
-        var options = new TaskOptions(TaskRetryOptions.FromRetryPolicy(policy));
         int index = 3;
         /// /// /// /// /// /// /// /// /// /// /// ///
         ///
@@ -67,7 +59,7 @@ public static class SafeOrchestration
         product = await context.CallSubOrchestratorAsync<Product>(
             nameof(RunOrchestrationAlpha),
             product,
-            options.WithInstanceId($"{id}Alpha)")
+            GetOptions(true).WithInstanceId($"{id}Alpha)")
         );
         index += 3;
         context.SetCustomStatus($"{product.LastState}{index:00}");
@@ -76,7 +68,7 @@ public static class SafeOrchestration
             product = await context.CallSubOrchestratorAsync<Product>(
                 nameof(RunOrchestrationBravo),
                 product,
-                options.WithInstanceId($"{id}Bravo)")
+                GetOptions(true, true, true).WithInstanceId($"{id}Bravo)")
             );
         }
         index += 3;
@@ -86,7 +78,7 @@ public static class SafeOrchestration
             product = await context.CallSubOrchestratorAsync<Product>(
                 nameof(RunOrchestrationCharlie),
                 product,
-                options.WithInstanceId($"{id}Charlie)")
+                GetOptions(false, true, true).WithInstanceId($"{id}Charlie)")
             );
         }
         index++;
@@ -96,7 +88,7 @@ public static class SafeOrchestration
             product = await context.CallActivityAsync<Product>(
                 nameof(FinishAsync),
                 product,
-                options.WithInstanceId($"{id}Final)")
+                GetOptions().WithInstanceId($"{id}Final)")
             );
         }
         context.SetCustomStatus($"{product.LastState}{index++:00}");
@@ -104,6 +96,45 @@ public static class SafeOrchestration
 
         ///
         /// /// /// /// /// /// /// /// /// /// /// ///
+    }
+    private static TaskOptions GetOptions(
+        bool longRunning = false,
+        bool highMemory = false,
+        bool highDataOrFile = false
+    )
+    {
+        Int32 numberOfRetries = 5;
+        TimeSpan initialDelay = TimeSpan.FromMinutes(2);
+        double backoffCoefficient = 2;
+        TimeSpan? maxDelay = TimeSpan.FromHours(3);
+        TimeSpan? timeout = TimeSpan.FromHours(1);
+
+        if (highDataOrFile)
+        { // increased latency, lengthen recovery period
+            initialDelay = TimeSpan.FromMinutes(10);
+        }
+        if (longRunning)
+        { // allow to runlonger and retry more
+            numberOfRetries = 10;
+            initialDelay = TimeSpan.FromMinutes(8);
+            backoffCoefficient = 1.4141214;
+            timeout = TimeSpan.FromHours(10);
+        }
+        if (highMemory)
+        { // greater chance of resource depletion, allow longer delays for recovery, more retries
+            numberOfRetries = 10;
+            initialDelay = TimeSpan.FromMinutes(10);
+            backoffCoefficient = 1.4141214;
+            timeout = TimeSpan.FromHours(10);
+        }
+        RetryPolicy policy = new RetryPolicy(
+            numberOfRetries,
+            initialDelay,
+            backoffCoefficient,
+            maxDelay,
+            timeout
+        );
+        return new TaskOptions(TaskRetryOptions.FromRetryPolicy(policy));
     }
 
     [Function("OrchestrationZulu_HttpStart")]
