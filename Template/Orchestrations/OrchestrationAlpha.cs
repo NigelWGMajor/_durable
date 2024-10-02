@@ -36,7 +36,7 @@ public static class OrchestrationAlpha
             await context.CreateTimer(TimeSpan.FromSeconds(1), CancellationToken.None);
         else if (product.LastState == ActivityState.Redundant)
         {
-            await context.CreateTimer(TimeSpan.FromHours(1), CancellationToken.None);
+          //  await context.CreateTimer(TimeSpan.FromHours(1), CancellationToken.None);
             return product;
         }
         else if (product.LastState != ActivityState.Active)

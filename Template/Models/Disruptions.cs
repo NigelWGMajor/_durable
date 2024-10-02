@@ -2,13 +2,13 @@ namespace Models
 {
     public enum Disruptions
     {
-        crash, // throw in orchestrator 
-        wait,  // throw accessing metadata
-        pass,  // complete activity successfully
-        choke, // delay for resources
-        stall, // fail activity retryably
-        fail,  // fail activity fatally
-        drag,  // take a long time to complete (but not time outr)
-        stick  // take long enough to time out
+        Crash, // throw in orchestrator 
+        Wait,  // throw accessing metadata
+        Pass,  // complete activity successfully
+        Choke, // delay for resources
+        Stall, // fail activity retryably
+        Fail,  // fail activity fatally
+        Drag,  // take a long time to complete (but not time outr)
+        Stick  // take long enough to time out
     }
 }

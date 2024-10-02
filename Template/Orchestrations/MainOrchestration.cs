@@ -92,6 +92,7 @@ public static class SafeOrchestration
             );
         }
         context.SetCustomStatus($"{product.LastState}{index++:00}");
+        Console.WriteLine($"**\r\n*** Ended Main Orchestration as {product.LastState} \r\n**");
         return JsonSerializer.Serialize(product.ActivityHistory, _jsonOptions);
 
         ///
@@ -152,12 +153,13 @@ public static class SafeOrchestration
         var product = new Product();
         product.LastState = ActivityState.Ready;
         product.Payload.Name = inputData.Name;
-        product.Payload.InstanceId = inputData.Identity;
+        product.Payload.UniqueKey = inputData.UniqueKey;
+        product.Disruptions = (string[]) inputData.Disruptions.Clone();
 
         StartOrchestrationOptions options = new StartOrchestrationOptions
         {
             InstanceId =
-                $"Main-{inputData.Name}-{inputData.Identity}-{DateTime.UtcNow:yy-MM-ddThh:hh:ss:fff}"
+                $"Main-{inputData.Name}-{inputData.UniqueKey}-{DateTime.UtcNow:yy-MM-ddThh:hh:ss:fff}"
         };
 
         string instanceId = await client.ScheduleNewOrchestrationInstanceAsync(
