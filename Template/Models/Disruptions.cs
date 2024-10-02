@@ -2,8 +2,8 @@ namespace Models
 {
     public enum Disruptions
     {
-        Crash, // throw in orchestrator 
         Wait,  // throw accessing metadata
+        Crash, // throw in orchestrator 
         Pass,  // complete activity successfully
         Choke, // delay for resources
         Stall, // fail activity retryably

@@ -98,45 +98,7 @@ public static class SafeOrchestration
         ///
         /// /// /// /// /// /// /// /// /// /// /// ///
     }
-    private static TaskOptions GetOptions(
-        bool longRunning = false,
-        bool highMemory = false,
-        bool highDataOrFile = false
-    )
-    {
-        Int32 numberOfRetries = 5;
-        TimeSpan initialDelay = TimeSpan.FromMinutes(2);
-        double backoffCoefficient = 2;
-        TimeSpan? maxDelay = TimeSpan.FromHours(3);
-        TimeSpan? timeout = TimeSpan.FromHours(1);
-
-        if (highDataOrFile)
-        { // increased latency, lengthen recovery period
-            initialDelay = TimeSpan.FromMinutes(10);
-        }
-        if (longRunning)
-        { // allow to runlonger and retry more
-            numberOfRetries = 10;
-            initialDelay = TimeSpan.FromMinutes(8);
-            backoffCoefficient = 1.4141214;
-            timeout = TimeSpan.FromHours(10);
-        }
-        if (highMemory)
-        { // greater chance of resource depletion, allow longer delays for recovery, more retries
-            numberOfRetries = 10;
-            initialDelay = TimeSpan.FromMinutes(10);
-            backoffCoefficient = 1.4141214;
-            timeout = TimeSpan.FromHours(10);
-        }
-        RetryPolicy policy = new RetryPolicy(
-            numberOfRetries,
-            initialDelay,
-            backoffCoefficient,
-            maxDelay,
-            timeout
-        );
-        return new TaskOptions(TaskRetryOptions.FromRetryPolicy(policy));
-    }
+    
 
     [Function("OrchestrationZulu_HttpStart")]
     public static async Task<HttpResponseData> HttpStart(

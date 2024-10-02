@@ -9,6 +9,10 @@ namespace Orchestrations;
 
 public static class OrchestrationCharlie
 {
+    // constants to tune retry policy:
+    private const bool longRunning = false;
+    private const bool highMemory = false;
+    private const bool highDataOrFile = false;
     private static string _operation_name_ = nameof(StepCharlie);
 
     [Function(nameof(RunOrchestrationCharlie))]
@@ -18,21 +22,25 @@ public static class OrchestrationCharlie
     {
         ILogger logger = context.CreateReplaySafeLogger(nameof(RunOrchestrationCharlie));
         Product product = new Product();
+        product.InstanceId = context.InstanceId;
+
         if (!context.IsReplaying)
         {
-            logger.LogInformation("*** Initializing Product");
             product = context.GetInput<Product>() ?? new Product();
             product.ActivityName = _operation_name_;
         }
 
         product.Payload.Id = System.Diagnostics.Process.GetCurrentProcess().Id;
 
-        product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
+        product = await context.CallActivityAsync<Product>(
+            nameof(PreProcessAsync),
+            product,
+            GetOptions().WithInstanceId($"{context.InstanceId})-pre")
+        );
         if (product.LastState == ActivityState.Deferred)
             await context.CreateTimer(TimeSpan.FromSeconds(1), CancellationToken.None);
         else if (product.LastState == ActivityState.Redundant)
         {
-            await context.CreateTimer(TimeSpan.FromHours(1), CancellationToken.None);
             return product;
         }
         else if (product.LastState != ActivityState.Active)
@@ -41,12 +49,20 @@ public static class OrchestrationCharlie
             return product;
         }
         if (
-            product.LastState != ActivityState.Redundant 
-            && product.ActivityName == _operation_name_
+            product.LastState != ActivityState.Redundant && product.ActivityName == _operation_name_
         )
         {
-            product = await context.CallActivityAsync<Product>(_operation_name_, product);
-            product = await context.CallActivityAsync<Product>(nameof(PostProcessAsync), product);
+            product = await context.CallActivityAsync<Product>(
+                _operation_name_,
+                product,
+                GetOptions(longRunning, highMemory, highDataOrFile)
+                    .WithInstanceId($"{context.InstanceId})-activity")
+            );
+            product = await context.CallActivityAsync<Product>(
+                nameof(PostProcessAsync),
+                product,
+                GetOptions().WithInstanceId($"{context.InstanceId})-post")
+            );
             return product;
         }
         else
