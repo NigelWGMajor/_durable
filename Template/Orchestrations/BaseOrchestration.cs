@@ -22,11 +22,12 @@ namespace Orchestrations;
 /// </summary>
 public static class BaseOrchestration
 {
-    internal static bool IsDisrupted = false;
+
     internal static TaskOptions GetOptions(
         bool longRunning = false,
         bool highMemory = false,
-        bool highDataOrFile = false
+        bool highDataOrFile = false,
+        bool isDisrupted = false
     )
     {
         Int32 numberOfRetries = 5;
@@ -35,7 +36,7 @@ public static class BaseOrchestration
         TimeSpan? maxDelay = TimeSpan.FromHours(3);
         TimeSpan? timeout = TimeSpan.FromHours(2);
 
-        if (IsDisrupted)
+        if (isDisrupted)
         {
             numberOfRetries = 5;
             initialDelay = TimeSpan.FromMinutes(2);
@@ -109,7 +110,9 @@ public static class BaseOrchestration
         // This controls whether the activity is even fired,
         // and works with the metadata.
         var uniqueKey = product.Payload.UniqueKey;
+
         // read the current activity
+
         var current = await _store.ReadActivityStateAsync(uniqueKey);
         if (current.State == ActivityState.Finished)
         {
