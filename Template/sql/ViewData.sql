@@ -34,5 +34,5 @@ from rpt.OperationFlowStateHistory
 order by UniqueKey, SequenceNumber 
 
 -- THESE CAN BE USED TO PURGE FINISHED FILES FROM THE MAIN TABLE AND ALL FILES FROM THE HISTORY TABLE!
--- exec ReportsLocal.rpt.OperationFlowState_Purge;
--- exec ReportsLocal.rpt.OperationFlowStateHistory_Purge;
+-- exec rpt.OperationFlowState_Purge;
+-- exec rpt.OperationFlowStateHistory_Purge;
