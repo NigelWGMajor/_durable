@@ -22,6 +22,7 @@ namespace Orchestrations;
 /// </summary>
 public static class BaseOrchestration
 {
+    internal static bool IsDisrupted = false;
     internal static TaskOptions GetOptions(
         bool longRunning = false,
         bool highMemory = false,
@@ -29,28 +30,38 @@ public static class BaseOrchestration
     )
     {
         Int32 numberOfRetries = 5;
-        TimeSpan initialDelay = TimeSpan.FromMinutes(2);
-        double backoffCoefficient = 2;
+        TimeSpan initialDelay = TimeSpan.FromMinutes(5);
+        double backoffCoefficient = 2.0;
         TimeSpan? maxDelay = TimeSpan.FromHours(3);
-        TimeSpan? timeout = TimeSpan.FromHours(1);
+        TimeSpan? timeout = TimeSpan.FromHours(2);
+
+        if (IsDisrupted)
+        {
+            numberOfRetries = 5;
+            initialDelay = TimeSpan.FromMinutes(2);
+            backoffCoefficient = 1.0;
+            maxDelay = TimeSpan.FromHours(3);
+            timeout = TimeSpan.FromMinutes(10);
+        }
 
         if (highDataOrFile)
         { // increased latency, lengthen recovery period
             initialDelay = TimeSpan.FromMinutes(10);
+            timeout = TimeSpan.FromHours(8);
         }
         if (longRunning)
         { // allow to runlonger and retry more
             numberOfRetries = 10;
             initialDelay = TimeSpan.FromMinutes(8);
             backoffCoefficient = 1.4141214;
-            timeout = TimeSpan.FromHours(10);
+            timeout = TimeSpan.FromHours(12);
         }
         if (highMemory)
         { // greater chance of resource depletion, allow longer delays for recovery, more retries
             numberOfRetries = 10;
             initialDelay = TimeSpan.FromMinutes(10);
             backoffCoefficient = 1.4141214;
-            timeout = TimeSpan.FromHours(10);
+            timeout = TimeSpan.FromHours(6);
         }
         RetryPolicy policy = new RetryPolicy(
             numberOfRetries,
