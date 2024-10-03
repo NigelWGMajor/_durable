@@ -7,8 +7,8 @@ namespace Degreed.SafeTest
     [DebuggerStepThrough]
     public class ActivityRecord
     {
-        [JsonPropertyName("KeyId")]
-        public string KeyId { get; set; } = "";
+        [JsonPropertyName("UniqueKey")]
+        public string UniqueKey { get; set; } = "";
 
         [JsonPropertyName("ActivityName")]
         public string ActivityName { get; set; } = "";
@@ -44,8 +44,8 @@ namespace Degreed.SafeTest
         [JsonPropertyName("ProcessId")]
         public string ProcessId { get; set; } = "";
 
-        [JsonPropertyName("InstanceNumber")]
-        public int InstanceNumber { get; set; }
+        [JsonPropertyName("SequenceNumber")]
+        public int SequenceNumber { get; set; }
 
         [JsonPropertyName("Count")]
         public int Count { get; set; } = 0;
@@ -71,7 +71,7 @@ namespace Degreed.SafeTest
         public static void SyncRecordAndProduct(this ActivityRecord record, Product product)
         {
             record.MarkEndTime();
-            record.InstanceNumber++;
+            record.SequenceNumber++;
             product.ActivityHistory.Add(record);
             product.LastState = record.State;
         }

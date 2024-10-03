@@ -6,9 +6,9 @@ public class InputData
     [JsonPropertyName("name")]
     public string Name { get; set; } = "";
 
-    [JsonPropertyName("identity")]
-    public string Identity { get; set; } = "";
+    [JsonPropertyName("uniqueKey")]
+    public string UniqueKey { get; set; } = "";
 
-    [JsonPropertyName("testStates")]
-    public ActivityState[] TestStates { get; set; } = [];
+    [JsonPropertyName("disruptions")]
+    public string[] Disruptions { get; set; } = [];
 }

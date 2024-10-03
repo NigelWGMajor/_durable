@@ -17,8 +17,8 @@ public interface IDataStore
 public class DataStore : IDataStore
 {
     private readonly string _connectionString;
-    private const string _read_activity_ = "rpt.ReportFlowState_Read";
-    private const string _write_activity_ = "rpt.ReportFlowState_Write";
+    private const string _read_activity_ = "rpt.OperationFlowState_Read";
+    private const string _write_activity_ = "rpt.OperationFlowState_Write";
     private static readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
     public DataStore(string connectionString)
@@ -52,7 +52,7 @@ public class DataStore : IDataStore
                 {
                     command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.Add(
-                        new SqlParameter("@KeyId", SqlDbType.NVarChar, 100) { Value = keyId }
+                        new SqlParameter("@UniqueKey", SqlDbType.NVarChar, 100) { Value = keyId }
                     );
 
                     using (SqlDataReader reader = await command.ExecuteReaderAsync())
@@ -67,7 +67,7 @@ public class DataStore : IDataStore
             if (String.IsNullOrEmpty(json))
                 return new ActivityRecord
                 {
-                    KeyId = keyId,
+                    UniqueKey = keyId,
                     Notes = "Not found",
                     State = ActivityState.unknown
                 };
@@ -75,7 +75,7 @@ public class DataStore : IDataStore
         }
         catch (Exception ex)
         {
-            throw new FlowManagerRetryableException("Unable to read current ActivityRecord", ex);
+            throw new FlowManagerRetryableException("Metadata store: Unable to read current ActivityRecord", ex);
         }
     }
 
@@ -115,7 +115,7 @@ public class DataStore : IDataStore
         }
         catch (Exception ex)
         {
-            throw new FlowManagerRetryableException("Unable to write current ActivityRecord", ex);
+            throw new FlowManagerRetryableException("Metadata store: Unable to write current ActivityRecord", ex);
         }
     }
 }

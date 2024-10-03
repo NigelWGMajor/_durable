@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json.Serialization;
 using Degreed.SafeTest;
 using Microsoft.DurableTask;
 using Microsoft.Identity.Client;
@@ -11,15 +12,49 @@ public class Product
     {
         Payload = new Payload();
     }
+    [JsonPropertyName("activityName")]
     public string ActivityName { get; set; } = "";
+    [JsonPropertyName("payLoad")]
     public Payload Payload { get; set; }
+        [JsonPropertyName("lastState")]
     public ActivityState LastState { get; set; } = ActivityState.unknown;
+        [JsonPropertyName("activityHistory")]
     public List<ActivityRecord> ActivityHistory { get; set; } = new List<ActivityRecord>();
+
+[JsonIgnore()]
+    public bool MayContinue => LastState != ActivityState.Redundant;
+        [JsonPropertyName("errors")]
+    public List<string> Errors = new List<string>();
+        [JsonPropertyName("instanceId")]
+    public string InstanceId { get;  set; }
+        [JsonPropertyName("disruptions")]
+    public string[] Disruptions { get; set; } = [];
+        [JsonPropertyName("nextDisruption")]
+    public string NextDisruption { get; private set; } 
     public static Product FromContext(TaskOrchestrationContext context)
     {
         return context.GetInput<Product>();
     }
-    public bool MayContinue => LastState != ActivityState.Redundant;
-    public List<string> Errors = new List<string>();
-    public string InstanceId { get;  set; }
+    /// <summary>
+    /// Pops the next disruption (or an empty string) off the disruptions stack
+    /// into the NextDisruption variable. Need to call once per cycle.
+    /// </summary>
+    /// <returns></returns>
+    public void PopDisruption()
+    {
+        // return the next disruption, removing it from the disruptions list
+        if (Disruptions.Length == 0)
+            NextDisruption = "";
+        else
+        {
+            NextDisruption = Disruptions[0];
+            string[] temp = new string[Disruptions.Length - 1];
+            string result = Disruptions[0];
+            for (int i = 0; i < temp.Length; i++)
+            {
+                temp[i] = Disruptions[i + 1];
+            }
+            Disruptions = temp;
+        }
+    }
 }

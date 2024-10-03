@@ -9,6 +9,10 @@ namespace Orchestrations;
 
 public static class OrchestrationBravo
 {
+        // constants to tune retry policy:
+    private const bool longRunning = false;
+    private const bool highMemory = false;
+    private const bool highDataOrFile = false;
     private static string _operation_name_ = nameof(StepBravo);
 
     [Function(nameof(RunOrchestrationBravo))]
@@ -18,7 +22,8 @@ public static class OrchestrationBravo
     {
         ILogger logger = context.CreateReplaySafeLogger(nameof(RunOrchestrationBravo));
         Product product = new Product();
-        if (!context.IsReplaying)
+        product.InstanceId =  context.InstanceId;
+                if (!context.IsReplaying)
         {
             logger.LogInformation("*** Initializing Product");
             product = context.GetInput<Product>() ?? new Product();
@@ -27,12 +32,11 @@ public static class OrchestrationBravo
 
         product.Payload.Id = System.Diagnostics.Process.GetCurrentProcess().Id;
 
-        product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product);
+      product = await context.CallActivityAsync<Product>(nameof(PreProcessAsync), product, GetOptions().WithInstanceId($"{context.InstanceId})-pre"));
         if (product.LastState == ActivityState.Deferred)
             await context.CreateTimer(TimeSpan.FromSeconds(1), CancellationToken.None);
         else if (product.LastState == ActivityState.Redundant)
         {
-            await context.CreateTimer(TimeSpan.FromHours(1), CancellationToken.None);
             return product;
         }
         else if (product.LastState != ActivityState.Active)
@@ -45,8 +49,8 @@ public static class OrchestrationBravo
             && product.ActivityName == _operation_name_
         )
         {
-            product = await context.CallActivityAsync<Product>(_operation_name_, product);
-            product = await context.CallActivityAsync<Product>(nameof(PostProcessAsync), product);
+            product = await context.CallActivityAsync<Product>(_operation_name_, product,  GetOptions(longRunning, highMemory, highDataOrFile).WithInstanceId($"{context.InstanceId})-activity"));
+            product = await context.CallActivityAsync<Product>(nameof(PostProcessAsync), product,  GetOptions().WithInstanceId($"{context.InstanceId})-post"));
             return product;
         }
         else

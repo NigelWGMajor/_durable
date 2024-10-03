@@ -92,50 +92,13 @@ public static class SafeOrchestration
             );
         }
         context.SetCustomStatus($"{product.LastState}{index++:00}");
+        Console.WriteLine($"**\r\n*** Ended Main Orchestration as {product.LastState} \r\n**");
         return JsonSerializer.Serialize(product.ActivityHistory, _jsonOptions);
 
         ///
         /// /// /// /// /// /// /// /// /// /// /// ///
     }
-    private static TaskOptions GetOptions(
-        bool longRunning = false,
-        bool highMemory = false,
-        bool highDataOrFile = false
-    )
-    {
-        Int32 numberOfRetries = 5;
-        TimeSpan initialDelay = TimeSpan.FromMinutes(2);
-        double backoffCoefficient = 2;
-        TimeSpan? maxDelay = TimeSpan.FromHours(3);
-        TimeSpan? timeout = TimeSpan.FromHours(1);
-
-        if (highDataOrFile)
-        { // increased latency, lengthen recovery period
-            initialDelay = TimeSpan.FromMinutes(10);
-        }
-        if (longRunning)
-        { // allow to runlonger and retry more
-            numberOfRetries = 10;
-            initialDelay = TimeSpan.FromMinutes(8);
-            backoffCoefficient = 1.4141214;
-            timeout = TimeSpan.FromHours(10);
-        }
-        if (highMemory)
-        { // greater chance of resource depletion, allow longer delays for recovery, more retries
-            numberOfRetries = 10;
-            initialDelay = TimeSpan.FromMinutes(10);
-            backoffCoefficient = 1.4141214;
-            timeout = TimeSpan.FromHours(10);
-        }
-        RetryPolicy policy = new RetryPolicy(
-            numberOfRetries,
-            initialDelay,
-            backoffCoefficient,
-            maxDelay,
-            timeout
-        );
-        return new TaskOptions(TaskRetryOptions.FromRetryPolicy(policy));
-    }
+    
 
     [Function("OrchestrationZulu_HttpStart")]
     public static async Task<HttpResponseData> HttpStart(
@@ -152,12 +115,13 @@ public static class SafeOrchestration
         var product = new Product();
         product.LastState = ActivityState.Ready;
         product.Payload.Name = inputData.Name;
-        product.Payload.InstanceId = inputData.Identity;
+        product.Payload.UniqueKey = inputData.UniqueKey;
+        product.Disruptions = (string[]) inputData.Disruptions.Clone();
 
         StartOrchestrationOptions options = new StartOrchestrationOptions
         {
             InstanceId =
-                $"Main-{inputData.Name}-{inputData.Identity}-{DateTime.UtcNow:yy-MM-ddThh:hh:ss:fff}"
+                $"Main-{inputData.Name}-{inputData.UniqueKey}-{DateTime.UtcNow:yy-MM-ddThh:hh:ss:fff}"
         };
 
         string instanceId = await client.ScheduleNewOrchestrationInstanceAsync(

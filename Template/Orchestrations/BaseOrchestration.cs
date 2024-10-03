@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc.Diagnostics;
 using System.Diagnostics;
 using Microsoft.Azure.Functions.Worker;
 using System.Runtime.InteropServices;
+using System.Linq;
 
 namespace Orchestrations;
 
@@ -21,6 +22,56 @@ namespace Orchestrations;
 /// </summary>
 public static class BaseOrchestration
 {
+    internal static bool IsDisrupted = false;
+    internal static TaskOptions GetOptions(
+        bool longRunning = false,
+        bool highMemory = false,
+        bool highDataOrFile = false
+    )
+    {
+        Int32 numberOfRetries = 5;
+        TimeSpan initialDelay = TimeSpan.FromMinutes(5);
+        double backoffCoefficient = 2.0;
+        TimeSpan? maxDelay = TimeSpan.FromHours(3);
+        TimeSpan? timeout = TimeSpan.FromHours(2);
+
+        if (IsDisrupted)
+        {
+            numberOfRetries = 5;
+            initialDelay = TimeSpan.FromMinutes(2);
+            backoffCoefficient = 1.0;
+            maxDelay = TimeSpan.FromHours(3);
+            timeout = TimeSpan.FromMinutes(10);
+        }
+
+        if (highDataOrFile)
+        { // increased latency, lengthen recovery period
+            initialDelay = TimeSpan.FromMinutes(10);
+            timeout = TimeSpan.FromHours(8);
+        }
+        if (longRunning)
+        { // allow to runlonger and retry more
+            numberOfRetries = 10;
+            initialDelay = TimeSpan.FromMinutes(8);
+            backoffCoefficient = 1.4141214;
+            timeout = TimeSpan.FromHours(12);
+        }
+        if (highMemory)
+        { // greater chance of resource depletion, allow longer delays for recovery, more retries
+            numberOfRetries = 10;
+            initialDelay = TimeSpan.FromMinutes(10);
+            backoffCoefficient = 1.4141214;
+            timeout = TimeSpan.FromHours(6);
+        }
+        RetryPolicy policy = new RetryPolicy(
+            numberOfRetries,
+            initialDelay,
+            backoffCoefficient,
+            maxDelay,
+            timeout
+        );
+        return new TaskOptions(TaskRetryOptions.FromRetryPolicy(policy));
+    }
     private static DataStore? _store;
 
     static BaseOrchestration()
@@ -37,12 +88,16 @@ public static class BaseOrchestration
         else
             throw new FlowManagerRetryableException("MetadataStore connection not provided");
     }
-/// <summary>
-/// This checks and updates metadata prior to calling an activity.
-/// If the product.LastState == Active on return, the orchestrator should 
-/// launch the activity. 
-/// </summary>
-    [Function(nameof(PreProcessAsync))] 
+    private static bool MatchesDisruption(string s, Disruptions d)
+    {
+        return (s.ToLower() == d.ToString().ToLower());
+    }
+    /// <summary>
+    /// This checks and updates metadata prior to calling an activity.
+    /// If the product.LastState == Active on return, the orchestrator should
+    /// launch the activity.
+    /// </summary>
+    [Function(nameof(PreProcessAsync))]
     public static async Task<Product> PreProcessAsync(
         [ActivityTrigger]
         //string activityName, // this is the name of the required activity as seen by the Orchestration framework
@@ -53,49 +108,54 @@ public static class BaseOrchestration
         // this is the safety wrapper for the activity.
         // This controls whether the activity is even fired,
         // and works with the metadata.
-        var keyId = product.Payload.InstanceId;
+        var uniqueKey = product.Payload.UniqueKey;
         // read the current activity
-        var current = await _store.ReadActivityStateAsync(keyId);
-        current.MarkStartTime();
-        // Choose actions dependent on oncoming state
-        // // Part 1 of 4: Respond to the Inbound State:
-        current.ProcessId = $"{product.Payload.InstanceId}|{product.Payload.Id}";
-        Console.WriteLine($"*** {current.ActivityName} - {current.ActivityStateCode}:{current.ActivityStateName} ***");
+        var current = await _store.ReadActivityStateAsync(uniqueKey);
+        if (current.State == ActivityState.Finished)
+        {
+            // This has already been run!
+            current.State = ActivityState.Redundant;
+        }
+        else
+        {
+            current.MarkStartTime();
+            current.ProcessId = $"{product.Payload.UniqueKey}|{product.Payload.Id}";
+        }
+        // we may need to emulate a metadata failure.
+        product.PopDisruption(); 
+        if (MatchesDisruption(product.NextDisruption, Disruptions.Wait))
+        {   // inject a wait cycle using the durable framework
+            throw new FlowManagerRetryableException("Metadata store: Not available (emulated).");
+        }
         switch (current.State)
         {
-
             case ActivityState.unknown:
                 // this is a brand new record, never saved to the database yet
                 if (String.IsNullOrEmpty(current.ActivityName))
                 {
                     current.ActivityName = product.ActivityName;
                 }
-                //current.MarkStartTime();
-                current.InstanceNumber = 0;
-                current.KeyId = keyId;
+                current.SequenceNumber = 0;
+                current.UniqueKey = uniqueKey;
                 current.State = ActivityState.Ready;
                 current.Notes = "Initial record";
                 break;
             case ActivityState.Deferred:
                 // in these cases regard as Ready.
-               // current.MarkStartTime();
+                // current.MarkStartTime();
                 current.State = ActivityState.Ready;
                 current.Notes = "Deferred for possible resource depletion";
                 current.Count++;
                 break;
             case ActivityState.Ready:
-                //current.MarkStartTime(); 
+                //current.MarkStartTime();
                 current.State = ActivityState.Active;
+                current.Count++;
                 current.Notes = "Pending Execution";
                 break;
             case ActivityState.Redundant:
                 // the item is blocked from this execution thread.
                 // ideally we black-ice this thread...
-                // we may not ever encounter this here, but should just return.
-                // the plan is that once this is set we just let the orchestrator
-                // run to completion and/or terminate it.
-                current.State = ActivityState.Active;
-                await _store.WriteActivityStateAsync(current);
                 product.LastState = ActivityState.Redundant;
                 return product;
             case ActivityState.Active:
@@ -116,24 +176,15 @@ public static class BaseOrchestration
             case ActivityState.Stuck:
                 // this should never occur
                 throw new FlowManagerFatalException("Stuck activity");
-            case ActivityState.Stalled:
+            case ActivityState.Stalled: // this is handled by the durable function framework.
                 current.Count++;
-                if (current.InstanceNumber > Settings.StallCap)
-                {
-                    current.MarkEndTime();
-                    current.State = ActivityState.Failed;
-                    current.Notes = "Maximum retry count exceeded";
-                }
-                else
-                {
-               //     current.MarkStartTime();
-                    current.State = ActivityState.Ready;
-                    current.Notes = "Retrying after retryable failure";
-                }
+                current.State = ActivityState.Ready;
+                current.Notes = "Retrying after retryable failure";
+                // }
                 break;
             case ActivityState.Completed:
                 // this typically means that the previous activity was successful.
-               // current.MarkStartTime();
+                // current.MarkStartTime();
                 current.ActivityName = product.ActivityName;
                 current.State = ActivityState.Ready;
                 current.Notes = "Completed successfully";
@@ -150,44 +201,59 @@ public static class BaseOrchestration
         // Resource checking:
         if (AreResourcesStressed())
         {
-            if (current.InstanceNumber < Settings.DelayCap)
+            if (current.SequenceNumber < Settings.ChokeCap)
             {
                 current.State = ActivityState.Deferred;
             }
         }
-        current.SyncRecordAndProduct(product);        
+        current.SyncRecordAndProduct(product);
         await _store.WriteActivityStateAsync(current);
         return product;
     }
-    [Function(nameof(PostProcessAsync))] 
+
+    [Function(nameof(PostProcessAsync))]
     public static async Task<Product> PostProcessAsync([ActivityTrigger] Product product)
     {
-        var keyId = product.Payload.InstanceId;
-        var current = await _store.ReadActivityStateAsync(keyId);
+        var uniqueKey = product.Payload.UniqueKey;
+        var current = await _store.ReadActivityStateAsync(uniqueKey);
         current.MarkEndTime();
         current.State = product.LastState;
         current.SyncRecordAndProduct(product);
-        await _store.WriteActivityStateAsync(current);
         switch (current.State)
         {
             case ActivityState.Stalled: // defer to prevailing Durable Function retry policy
-                throw new FlowManagerRetryableException($"Retryable FlowManager Exception: {product.ActivityHistory}");
+                current.Notes = "activity stalled with non-fatal error.";
+                await _store.WriteActivityStateAsync(current);
+                throw new FlowManagerRetryableException(
+                    $"Retryable FlowManager Exception: {product.ActivityHistory}"
+                );
             case ActivityState.Failed: // throw up to orchestrator.
-                throw new FlowManagerFatalException($"Fatal FlowManager Exception: {product.ActivityHistory}");
+                current.Notes = "activity failed with fatal error.";
+                await _store.WriteActivityStateAsync(current);
+                throw new FlowManagerFatalException(
+                    $"Fatal FlowManager Exception: {product.ActivityHistory}"
+                );
             default:
-            return product;
-
+                current.Notes = "activity completed successfully.";
+                await _store.WriteActivityStateAsync(current);
+                return product;
         }
     }
-    [Function(nameof(FinishAsync))] 
+
+    [Function(nameof(FinishAsync))]
     public static async Task<Product> FinishAsync([ActivityTrigger] Product product)
     {
-        var keyId = product.Payload.InstanceId;
-        var current = await _store.ReadActivityStateAsync(keyId);
+        var uniqueKey = product.Payload.UniqueKey;
+        var current = await _store.ReadActivityStateAsync(uniqueKey);
         current.SyncRecordAndProduct(product);
         current.MarkEndTime();
         current.State = ActivityState.Finished;
+        if (product.Errors.Count == 0)
+            current.Notes = "All activities completed without error.";
+        else
+            current.Notes = "All Activities completed, see errors.";
         await _store.WriteActivityStateAsync(current);
+        current.SyncRecordAndProduct(product);
         return product;
     }
 
