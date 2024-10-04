@@ -49,7 +49,7 @@ public static class SafeOrchestration
             product.ActivityName = nameof(StepAlpha);
         }
 
-        product.Payload.Id = System.Diagnostics.Process.GetCurrentProcess().Id;
+        //product.Payload.Id = System.Diagnostics.Process.GetCurrentProcess().Id;
         string id = context.InstanceId; //$"{product.Payload.Id}@{DateTime.UtcNow:u}#";
 
         int index = 3;

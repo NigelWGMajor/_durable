@@ -31,7 +31,7 @@ public static class OrchestrationBravo
             product.ActivityName = _operation_name_;
         }
 
-        product.Payload.Id = System.Diagnostics.Process.GetCurrentProcess().Id;
+        //product.Payload.Id = System.Diagnostics.Process.GetCurrentProcess().Id;
 
         product = await context.CallActivityAsync<Product>(
             nameof(PreProcessAsync),

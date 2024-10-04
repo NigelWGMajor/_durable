@@ -1,3 +1,4 @@
+using System;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using Degreed.SafeTest;
@@ -7,9 +8,12 @@ using Microsoft.DurableTask.Client;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Mvc.Diagnostics;
 using System.Diagnostics;
+using System.ComponentModel;
 using Microsoft.Azure.Functions.Worker;
 using System.Runtime.InteropServices;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
+
 
 namespace Orchestrations;
 
@@ -122,7 +126,7 @@ public static class BaseOrchestration
         else
         {
             current.MarkStartTime();
-            current.ProcessId = $"{product.Payload.UniqueKey}|{product.Payload.Id}";
+            current.ProcessId = $"{product.Payload.UniqueKey}";//|{product.Payload.Id}";
         }
         // we may need to emulate a metadata failure.
         product.PopDisruption(); 
@@ -137,29 +141,31 @@ public static class BaseOrchestration
                 if (String.IsNullOrEmpty(current.ActivityName))
                 {
                     current.ActivityName = product.ActivityName;
+                    current.Trace($"Pre: New Operation {product.ActivityName}");
                 }
                 current.SequenceNumber = 0;
                 current.UniqueKey = uniqueKey;
                 current.State = ActivityState.Ready;
-                current.Notes = "Initial record";
                 break;
             case ActivityState.Deferred:
                 // in these cases regard as Ready.
                 // current.MarkStartTime();
                 current.State = ActivityState.Ready;
-                current.Notes = "Deferred for possible resource depletion";
+                current.Trace($"Pre: Deferred for resources");
                 current.Count++;
                 break;
             case ActivityState.Ready:
                 //current.MarkStartTime();
                 current.State = ActivityState.Active;
                 current.Count++;
-                current.Notes = "Pending Execution";
+                current.Trace($"Pre: Awaiting execution");
                 break;
             case ActivityState.Redundant:
                 // the item is blocked from this execution thread.
                 // ideally we black-ice this thread...
                 product.LastState = ActivityState.Redundant;
+                current.Trace($"Pre: Returned as Redundant");
+                await _store.WriteActivityStateAsync(current);
                 return product;
             case ActivityState.Active:
                 // another instance is already active
@@ -167,22 +173,25 @@ public static class BaseOrchestration
                 if (NowPastLimit(current.TimeStarted, Settings.MaximumActivityTime))
                 {
                     current.State = ActivityState.Stuck;
-                    current.Notes = "maximum activity run time exceeded";
+                    current.Trace($"Pre: Stuck because maximum run time exceeded");
                 }
                 else
                 {
                     // otherwise we should mark this instance as redundant
                     current.State = ActivityState.Redundant;
-                    current.Notes = "Re-entrant behavior detected";
+                    var threadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
+                    current.Trace($"Pre: Re-entrant thread {threadId} rejected");
                 }
                 break;
             case ActivityState.Stuck:
                 // this should never occur
-                throw new FlowManagerFatalException("Stuck activity");
+                current.Trace("Pre: Activity State 'Stuck' encountered in preprocessor: unexpected dev error!");
+                await _store.WriteActivityStateAsync(current);
+                throw new FlowManagerFatalException("Stuck activity detected in PreProcessor!");
             case ActivityState.Stalled: // this is handled by the durable function framework.
                 current.Count++;
                 current.State = ActivityState.Ready;
-                current.Notes = "Retrying after retryable failure";
+                current.Trace($"Pre: Stalled on Retryable failure"); 
                 // }
                 break;
             case ActivityState.Completed:
@@ -190,23 +199,33 @@ public static class BaseOrchestration
                 // current.MarkStartTime();
                 current.ActivityName = product.ActivityName;
                 current.State = ActivityState.Ready;
-                current.Notes = "Completed successfully";
+                current.Trace($"Pre: Completed successfully");
                 break;
             case ActivityState.Failed:
-                // ===
-                current.Notes = "Failed fatally";
+                current.Trace($"Pre: Failed fatally");
                 break;
             case ActivityState.Finished:
+                current.Trace($"Pre: Re-entrant call rejected on Finished activity");
                 product.LastState = ActivityState.Redundant;
                 return product;
         }
 
         // Resource checking:
+        // At present it is not possible to determine the load on a durable function directly. 
+        // We could however possibly count the number of activities flagged as memory-intensive that are in-flight
+        // and defer on that basis. We should however use a cap to stagger the executions rather than make them 
+        // execute sequentially.
         if (AreResourcesStressed())
         {
             if (current.SequenceNumber < Settings.ChokeCap)
             {
+                current.Trace($"pre: Deferring execution for resources");
                 current.State = ActivityState.Deferred;
+            }
+            else
+            {
+                current.Trace("Choke Cap exceeded - switching to 'Ready'");
+                current.State = ActivityState.Ready;
             }
         }
         current.SyncRecordAndProduct(product);
@@ -225,19 +244,19 @@ public static class BaseOrchestration
         switch (current.State)
         {
             case ActivityState.Stalled: // defer to prevailing Durable Function retry policy
-                current.Notes = "activity stalled with non-fatal error.";
+                current.Trace("Activity stalled with non-fatal error.");
                 await _store.WriteActivityStateAsync(current);
                 throw new FlowManagerRetryableException(
-                    $"Retryable FlowManager Exception: {product.ActivityHistory}"
+                    $"Post: Retryable FlowManager Exception: {product.ActivityHistory}"
                 );
             case ActivityState.Failed: // throw up to orchestrator.
-                current.Notes = "activity failed with fatal error.";
+                current.Trace("Activity failed with fatal error.");
                 await _store.WriteActivityStateAsync(current);
                 throw new FlowManagerFatalException(
-                    $"Fatal FlowManager Exception: {product.ActivityHistory}"
+                    $"Post: Fatal FlowManager Exception: {product.ActivityHistory}"
                 );
             default:
-                current.Notes = "activity completed successfully.";
+                current.Trace("Post: Activity completed successfully.");
                 await _store.WriteActivityStateAsync(current);
                 return product;
         }
@@ -252,9 +271,9 @@ public static class BaseOrchestration
         current.MarkEndTime();
         current.State = ActivityState.Finished;
         if (product.Errors.Count == 0)
-            current.Notes = "All activities completed without error.";
+            current.Trace("Final: All activities completed without error.");
         else
-            current.Notes = "All Activities completed, see errors.";
+            current.Trace("Final: All Activities completed, see errors.");
         await _store.WriteActivityStateAsync(current);
         current.SyncRecordAndProduct(product);
         return product;
@@ -265,7 +284,6 @@ public static class BaseOrchestration
         var diff = DateTime.UtcNow - time;
         return diff >= limit;
     }
-
     private static bool AreResourcesStressed()
     {
         // you may add memory and/or cpu stress detectors here

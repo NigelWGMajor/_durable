@@ -62,6 +62,10 @@ namespace Degreed.SafeTest
         {
             record.TimeEnded = DateTime.UtcNow;
         }
+        public static void Trace(this ActivityRecord record, string message)
+        {
+            record.Notes = $"{message}|{record.Notes}";
+        }
 
         /// <summary>
         /// Update the product LastSate and history using this ActivityRecord.

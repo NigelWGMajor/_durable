@@ -20,8 +20,7 @@ public class Product
     public ActivityState LastState { get; set; } = ActivityState.unknown;
         [JsonPropertyName("activityHistory")]
     public List<ActivityRecord> ActivityHistory { get; set; } = new List<ActivityRecord>();
-
-[JsonIgnore()]
+    [JsonIgnore()]
     public bool MayContinue => LastState != ActivityState.Redundant;
         [JsonPropertyName("errors")]
     public List<string> Errors = new List<string>();
