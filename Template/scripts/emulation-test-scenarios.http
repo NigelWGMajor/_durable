@@ -40,6 +40,13 @@ Content-Type: application/json
     "name":"Normal_operation_should_finish_successfully", 
     "uniqueKey":"1001"
 }
+
+HTTP/1.1 202  - Accepted
+content-type: application/json
+date: Fri, 04 Oct 2024 18:19:08 GMT
+server: Kestrel
+location: http://localhost:7071/runtime/webhooks/durabletask/instances/Main-Normal_operation_should_finish_successfully-1001-24-10-04T06%3A06%3A08%3A186?code=CKKvhUY-uSSBeA15tM6VP3C5NitoRJTd-YqG_zHAJkFkAzFuf85JyA==
+transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -48,6 +55,13 @@ Content-Type: application/json
     "name":"normal_operation_should_finish_successfully", 
     "uniqueKey":"1002"
 }
+
+HTTP/1.1 202  - Accepted
+content-type: application/json
+date: Fri, 04 Oct 2024 18:19:09 GMT
+server: Kestrel
+location: http://localhost:7071/runtime/webhooks/durabletask/instances/Main-normal_operation_should_finish_successfully-1002-24-10-04T06%3A06%3A09%3A267?code=CKKvhUY-uSSBeA15tM6VP3C5NitoRJTd-YqG_zHAJkFkAzFuf85JyA==
+transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -56,6 +70,13 @@ Content-Type: application/json
     "name":"Normal_operation_should_finish_successfully", 
     "uniqueKey":"1003"
 }
+
+HTTP/1.1 202  - Accepted
+content-type: application/json
+date: Fri, 04 Oct 2024 18:19:09 GMT
+server: Kestrel
+location: http://localhost:7071/runtime/webhooks/durabletask/instances/Main-Normal_operation_should_finish_successfully-1003-24-10-04T06%3A06%3A09%3A876?code=CKKvhUY-uSSBeA15tM6VP3C5NitoRJTd-YqG_zHAJkFkAzFuf85JyA==
+transfer-encoding: chunked
 /*
 ## Redundant call
 
@@ -69,6 +90,13 @@ Content-Type: application/json
     "name":"Redundant_operation_call_should_be_ignored", 
     "uniqueKey":"1003"
 }
+
+HTTP/1.1 202  - Accepted
+content-type: application/json
+date: Fri, 04 Oct 2024 18:19:10 GMT
+server: Kestrel
+location: http://localhost:7071/runtime/webhooks/durabletask/instances/Main-Redundant_operation_call_should_be_ignored-1003-24-10-04T06%3A06%3A10%3A224?code=CKKvhUY-uSSBeA15tM6VP3C5NitoRJTd-YqG_zHAJkFkAzFuf85JyA==
+transfer-encoding: chunked
 /*
 ## Metadata access
 
@@ -85,6 +113,13 @@ Content-Type: application/json
         "Wait"
     ]
 }
+
+HTTP/1.1 202  - Accepted
+content-type: application/json
+date: Fri, 04 Oct 2024 18:19:11 GMT
+server: Kestrel
+location: http://localhost:7071/runtime/webhooks/durabletask/instances/Main-Wait_should_inject_a_metadata_failure-2010-24-10-04T06%3A06%3A11%3A409?code=CKKvhUY-uSSBeA15tM6VP3C5NitoRJTd-YqG_zHAJkFkAzFuf85JyA==
+transfer-encoding: chunked
 /*
 ## Crash
 
@@ -102,6 +137,13 @@ Content-Type: application/json
         "Crash" 
     ]
 }
+
+HTTP/1.1 202  - Accepted
+content-type: application/json
+date: Fri, 04 Oct 2024 18:19:12 GMT
+server: Kestrel
+location: http://localhost:7071/runtime/webhooks/durabletask/instances/Main-Crash_should_inject_orchestrator_exception-2011-24-10-04T06%3A06%3A12%3A073?code=CKKvhUY-uSSBeA15tM6VP3C5NitoRJTd-YqG_zHAJkFkAzFuf85JyA==
+transfer-encoding: chunked
 /*
 ## Pass
 
@@ -125,6 +167,13 @@ Content-Type: application/json
         "Pass" 
     ]
 }
+
+HTTP/1.1 202  - Accepted
+content-type: application/json
+date: Fri, 04 Oct 2024 18:19:12 GMT
+server: Kestrel
+location: http://localhost:7071/runtime/webhooks/durabletask/instances/Main-Pass_explicit_or_implied_allows_activities_to_complete_successfully-2011-24-10-04T06%3A06%3A12%3A495?code=CKKvhUY-uSSBeA15tM6VP3C5NitoRJTd-YqG_zHAJkFkAzFuf85JyA==
+transfer-encoding: chunked
 /*
 ## Choke
 
@@ -146,6 +195,13 @@ Content-Type: application/json
         "Choke"
     ]
 }
+
+HTTP/1.1 202  - Accepted
+content-type: application/json
+date: Fri, 04 Oct 2024 18:19:12 GMT
+server: Kestrel
+location: http://localhost:7071/runtime/webhooks/durabletask/instances/Main-Choke_should_inject_resource_depletion-2012-24-10-04T06%3A06%3A12%3A931?code=CKKvhUY-uSSBeA15tM6VP3C5NitoRJTd-YqG_zHAJkFkAzFuf85JyA==
+transfer-encoding: chunked
 /*
 ## Stall
 
@@ -168,6 +224,13 @@ Content-Type: application/json
         "Stall"
     ]
 }
+
+HTTP/1.1 202  - Accepted
+content-type: application/json
+date: Fri, 04 Oct 2024 18:19:13 GMT
+server: Kestrel
+location: http://localhost:7071/runtime/webhooks/durabletask/instances/Main-Stall_should_inject_non_fatal_error_in_activity-2013-24-10-04T06%3A06%3A13%3A385?code=CKKvhUY-uSSBeA15tM6VP3C5NitoRJTd-YqG_zHAJkFkAzFuf85JyA==
+transfer-encoding: chunked
 /*
 ## Fail
 
@@ -187,6 +250,13 @@ Content-Type: application/json
         "Fail"
     ]
 }
+
+HTTP/1.1 202  - Accepted
+content-type: application/json
+date: Fri, 04 Oct 2024 18:19:13 GMT
+server: Kestrel
+location: http://localhost:7071/runtime/webhooks/durabletask/instances/Main-Fail_should_inject_fatal_error_in_activity-2014-24-10-04T06%3A06%3A13%3A834?code=CKKvhUY-uSSBeA15tM6VP3C5NitoRJTd-YqG_zHAJkFkAzFuf85JyA==
+transfer-encoding: chunked
 /*
 ## Drag
 
@@ -205,6 +275,13 @@ Content-Type: application/json
         "Drag"
     ]
 }
+
+HTTP/1.1 202  - Accepted
+content-type: application/json
+date: Fri, 04 Oct 2024 18:19:13 GMT
+server: Kestrel
+location: http://localhost:7071/runtime/webhooks/durabletask/instances/Main-Drag_should_inject_long_running_activity-2015-24-10-04T06%3A06%3A14%3A024?code=CKKvhUY-uSSBeA15tM6VP3C5NitoRJTd-YqG_zHAJkFkAzFuf85JyA==
+transfer-encoding: chunked
 /*
 _Wait long enough for the activity to have become active, but not enough time for it to have completed or timed out_
 
@@ -216,8 +293,13 @@ Content-Type: application/json
 
 {
     "name":"redundant_call_during_drag_should_become_redundant", 
-    "uniqueKey":"2015",
+    "uniqueKey":"2015"
 }
+
+HTTP/1.1 500  - Internal Server Error
+content-length: 0
+date: Fri, 04 Oct 2024 18:23:13 GMT
+server: Kestrel
 /*
 ## Stick
 
@@ -236,3 +318,10 @@ Content-Type: application/json
         "Stick"
     ]
 }
+
+HTTP/1.1 202  - Accepted
+content-type: application/json
+date: Fri, 04 Oct 2024 18:23:14 GMT
+server: Kestrel
+location: http://localhost:7071/runtime/webhooks/durabletask/instances/Main-Stick_should_inject_activity_timeout-2016-24-10-04T06%3A06%3A14%3A734?code=CKKvhUY-uSSBeA15tM6VP3C5NitoRJTd-YqG_zHAJkFkAzFuf85JyA==
+transfer-encoding: chunked

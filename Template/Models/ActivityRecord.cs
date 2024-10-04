@@ -9,6 +9,8 @@ namespace Degreed.SafeTest
     {
         [JsonPropertyName("UniqueKey")]
         public string UniqueKey { get; set; } = "";
+        [JsonPropertyName("operationName")]
+        public string OperationName { get; set; } = "";
 
         [JsonPropertyName("ActivityName")]
         public string ActivityName { get; set; } = "";
@@ -39,7 +41,7 @@ namespace Degreed.SafeTest
         public DateTime TimeUpdated { get; set; }
 
         [JsonPropertyName("Notes")]
-        public string Notes { get; set; } = "";
+        public string Trace { get; set; } = "";
 
         [JsonPropertyName("ProcessId")]
         public string ProcessId { get; set; } = "";
@@ -64,7 +66,7 @@ namespace Degreed.SafeTest
         }
         public static void Trace(this ActivityRecord record, string message)
         {
-            record.Notes = $"{message}|{record.Notes}";
+            record.Trace = $"{message}|{record.Trace}";
         }
 
         /// <summary>
