@@ -118,6 +118,7 @@ insert into rpt.FlowStates(FlowStateName) values ('Finished');
 create table [rpt].[OperationFlowStates](
 	[OperationFlowStateID] [bigint] identity(1,1) NOT NULL,
 	[UniqueKey] [nvarchar](100) NOT NULL,
+    [OperationName] [nvarchar](100) NOT NULL,
 	[ActivityName] [nvarchar](100) NOT NULL,
 	[TimeStarted] [datetime2](7) NULL,
 	[TimeEnded] [datetime2](7) NULL,
@@ -140,6 +141,7 @@ go
 create table [rpt].[OperationFlowStateHistory](
 	[ReportFlowStateHistoryID] [bigint] identity(1,1) NOT NULL,
 	[UniqueKey] [nvarchar](100) NOT NULL,
+    [OperationName] [nvarchar](100) NOT NULL,
 	[ActivityName] [nvarchar](100) NOT NULL,
 	[TimeStarted] [datetime2](7) NULL,
 	[TimeEnded] [datetime2](7) NULL,
@@ -166,6 +168,7 @@ begin
     (
 	    select 
            UniqueKey,
+           OperationName,
            ActivityName,
            ActivityState,
            TimeStarted,
@@ -194,6 +197,7 @@ begin
     merge rpt.OperationFlowStates as target
     using (select 
                 json_value(@json, '$.UniqueKey') as UniqueKey,
+                json_value(@json, '$.OperationName') as OperationName,
                 json_value(@json, '$.ActivityName') as ActivityName,
                 json_value(@json, '$.TimeStarted') as TimeStarted,
                 json_value(@json, '$.TimeEnded') as TimeEnded,
@@ -208,8 +212,8 @@ begin
     on (target.UniqueKey = source.UniqueKey)
     when matched then
         update set 
+            OperationName = source.OperationName,
             ActivityName = source.ActivityName,
-            --TimeStarted = source.TimeStarted,
             TimeEnded = source.TimeEnded,
             ActivityState = source.ActivityState,
 			ActivityStateName = source.ActivityStateName,
@@ -220,12 +224,13 @@ begin
             TimeUpdated = source.TimeUpdated
     -- we only save the start time in when the record is first made.
     when not matched then
-        insert (UniqueKey, ActivityName, TimeStarted, TimeEnded, ActivityState, ActivityStateName, Trace, ProcessId, SequenceNumber, TimeUpdated, [Count])
-        values (source.UniqueKey, source.ActivityName, @Timestamp, source.TimeEnded, source.ActivityState, source.ActivityStateName, source.Trace, source.ProcessId, source.SequenceNumber, source.TimeUpdated, source.[Count]);
+        insert (UniqueKey, OperationName, ActivityName, TimeStarted, TimeEnded, ActivityState, ActivityStateName, Trace, ProcessId, SequenceNumber, TimeUpdated, [Count])
+        values (source.UniqueKey, source.OperationName, source.ActivityName, @Timestamp, source.TimeEnded, source.ActivityState, source.ActivityStateName, source.Trace, source.ProcessId, source.SequenceNumber, source.TimeUpdated, source.[Count]);
 ;
  insert into rpt.OperationFlowStateHistory
  (
      UniqueKey, 
+     OperationName,
 	 ActivityName, 
 	 TimeStarted, 
 	 TimeEnded, 
@@ -240,6 +245,7 @@ begin
  values 
  (
       json_value(@json, '$.UniqueKey'),
+      json_value(@json, '$.OperationName'),
       json_value(@json, '$.ActivityName'), 
       json_value(@json, '$.TimeStarted'), 
       json_value(@json, '$.TimeEnded'), 
