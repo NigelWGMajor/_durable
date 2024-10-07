@@ -14,7 +14,6 @@ using System.Runtime.InteropServices;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 
-
 namespace Orchestrations;
 
 /// <summary>
@@ -26,7 +25,6 @@ namespace Orchestrations;
 /// </summary>
 public static class BaseOrchestration
 {
-
     internal static TaskOptions GetOptions(
         bool longRunning = false,
         bool highMemory = false,
@@ -34,39 +32,56 @@ public static class BaseOrchestration
         bool isDisrupted = false
     )
     {
-        Int32 numberOfRetries = 5;
-        TimeSpan initialDelay = TimeSpan.FromMinutes(5);
-        double backoffCoefficient = 2.0;
-        TimeSpan? maxDelay = TimeSpan.FromHours(3);
-        TimeSpan? timeout = TimeSpan.FromHours(2);
+        Int32 numberOfRetries;
+        TimeSpan initialDelay;
+        double backoffCoefficient;
+        TimeSpan? maxDelay,
+            timeout;
 
         if (isDisrupted)
         {
-            numberOfRetries = 5;
+            // reduced for emulation and testing
+            numberOfRetries = 3;
             initialDelay = TimeSpan.FromMinutes(2);
             backoffCoefficient = 1.0;
             maxDelay = TimeSpan.FromHours(3);
-            timeout = TimeSpan.FromMinutes(10);
+            timeout = TimeSpan.FromMinutes(5);
+            Settings.MaximumActivityTime = TimeSpan.FromMinutes(5);
+            Settings.StickCap = 1;
+            Settings.WaitTime = TimeSpan.FromMinutes(2);
         }
+        else
+        {
+            // defaults
+            numberOfRetries = 5;
+            initialDelay = TimeSpan.FromMinutes(5);
+            backoffCoefficient = 2.0;
+            maxDelay = TimeSpan.FromHours(3);
+            timeout = TimeSpan.FromHours(2);
 
-        if (highDataOrFile)
-        { // increased latency, lengthen recovery period
-            initialDelay = TimeSpan.FromMinutes(10);
-            timeout = TimeSpan.FromHours(8);
-        }
-        if (longRunning)
-        { // allow to runlonger and retry more
-            numberOfRetries = 10;
-            initialDelay = TimeSpan.FromMinutes(8);
-            backoffCoefficient = 1.4141214;
-            timeout = TimeSpan.FromHours(12);
-        }
-        if (highMemory)
-        { // greater chance of resource depletion, allow longer delays for recovery, more retries
-            numberOfRetries = 10;
-            initialDelay = TimeSpan.FromMinutes(10);
-            backoffCoefficient = 1.4141214;
-            timeout = TimeSpan.FromHours(6);
+            Settings.MaximumActivityTime = TimeSpan.FromHours(12);
+            Settings.StickCap = 2;
+            Settings.WaitTime = TimeSpan.FromMinutes(2); //!  need to adjust to 10
+            // overrides are cumulative
+            if (highDataOrFile)
+            { // increased latency, lengthen recovery period
+                initialDelay = TimeSpan.FromMinutes(10);
+                timeout = TimeSpan.FromHours(8);
+            }
+            if (longRunning)
+            { // allow to run longer and retry more
+                numberOfRetries = 10;
+                initialDelay = TimeSpan.FromMinutes(8);
+                backoffCoefficient = 1.4141214;
+                timeout = TimeSpan.FromHours(12);
+            }
+            if (highMemory)
+            { // greater chance of resource depletion, allow longer delays for recovery, more retries
+                numberOfRetries = 10;
+                initialDelay = TimeSpan.FromMinutes(10);
+                backoffCoefficient = 1.4141214;
+                timeout = TimeSpan.FromHours(6);
+            }
         }
         RetryPolicy policy = new RetryPolicy(
             numberOfRetries,
@@ -77,6 +92,7 @@ public static class BaseOrchestration
         );
         return new TaskOptions(TaskRetryOptions.FromRetryPolicy(policy));
     }
+
     private static DataStore? _store;
 
     static BaseOrchestration()
@@ -93,10 +109,12 @@ public static class BaseOrchestration
         else
             throw new FlowManagerRetryableException("MetadataStore connection not provided");
     }
+
     private static bool MatchesDisruption(string s, Disruptions d)
     {
         return (s.ToLower() == d.ToString().ToLower());
     }
+
     /// <summary>
     /// This checks and updates metadata prior to calling an activity.
     /// If the product.LastState == Active on return, the orchestrator should
@@ -116,8 +134,31 @@ public static class BaseOrchestration
         var uniqueKey = product.Payload.UniqueKey;
 
         // read the current activity
-
-        var current = await _store.ReadActivityStateAsync(uniqueKey);
+        ActivityRecord current = new ActivityRecord();
+        try
+        {
+            current = await _store.ReadActivityStateAsync(uniqueKey);
+            if (product.IsDisrupted)
+            {
+                product.PopDisruption();
+                if (MatchesDisruption(product.NextDisruption, Disruptions.Wait))
+                {
+                    throw new FlowManagerRetryableException(
+                        "Pre: Metadata store not available (emulated)."
+                    );
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // This catches a metadata failure - whether emulated or resulting from the first read.
+            // We assume there is no metadata, so any status will need to be communicated via the product.
+            product.Errors = ex.Message;
+            product.LastState = ActivityState.Deferred;
+            // any state other than active will allow the product to start-as-new in the orchestrator.
+            // we choose deferred to give the metadata store time to recover.
+            return product;
+        }
         if (current.State == ActivityState.Finished)
         {
             // This has already been run!
@@ -126,14 +167,11 @@ public static class BaseOrchestration
         else
         {
             current.MarkStartTime();
-            current.ProcessId = $"{product.Payload.UniqueKey}";//|{product.Payload.Id}";
+            current.ProcessId = $"{product.Payload.UniqueKey}"; //|{product.Payload.Id}";
         }
-        // we may need to emulate a metadata failure.
-        product.PopDisruption(); 
-        if (MatchesDisruption(product.NextDisruption, Disruptions.Wait))
-        {   // inject a wait cycle using the durable framework
-            throw new FlowManagerRetryableException("Metadata store: Not available (emulated).");
-        }
+        // If we had a metadata failure when trying to read, the product should have an error reporting that.
+        // If the record never existed, it will come through as unknown and we will have errors in the product.
+
         switch (current.State)
         {
             case ActivityState.unknown:
@@ -141,11 +179,26 @@ public static class BaseOrchestration
                 if (String.IsNullOrEmpty(current.ActivityName))
                 {
                     current.ActivityName = product.ActivityName;
-                    current.Trace($"Pre: New Operation {product.ActivityName}");
+                    current.OperationName = product.OperationName;
                 }
                 current.SequenceNumber = 0;
                 current.UniqueKey = uniqueKey;
-                current.State = ActivityState.Ready;
+                if (product.Errors.Length > 0)
+                {
+                    // it looks like there was a metadata failure at incept.
+                    current.Trace($"{product.Errors}");
+                        current.SyncRecordAndProduct(product);
+                        await _store.WriteActivityStateAsync(current);
+                    product.Errors = "";
+                    return product;
+                }
+                else
+                {
+                    current.State = ActivityState.Ready;
+                }
+                current.Trace(
+                    $"Pre: New Operation {product.OperationName}::{product.ActivityName}"
+                );
                 break;
             case ActivityState.Deferred:
                 // in these cases regard as Ready.
@@ -185,19 +238,23 @@ public static class BaseOrchestration
                 break;
             case ActivityState.Stuck:
                 // this should never occur
-                current.Trace("Pre: Activity State 'Stuck' encountered in preprocessor: unexpected dev error!");
+                current.Trace(
+                    "Pre: Activity State 'Stuck' encountered in preprocessor: unexpected dev error!"
+                );
                 await _store.WriteActivityStateAsync(current);
                 throw new FlowManagerFatalException("Stuck activity detected in PreProcessor!");
             case ActivityState.Stalled: // this is handled by the durable function framework.
                 current.Count++;
                 current.State = ActivityState.Ready;
-                current.Trace($"Pre: Stalled on Retryable failure"); 
+                current.Trace($"Pre: Stalled on Retryable failure");
                 // }
                 break;
             case ActivityState.Completed:
                 // this typically means that the previous activity was successful.
                 // current.MarkStartTime();
+                current.Count = 0;
                 current.ActivityName = product.ActivityName;
+                current.OperationName = product.OperationName;
                 current.State = ActivityState.Ready;
                 current.Trace($"Pre: Completed successfully");
                 break;
@@ -211,22 +268,13 @@ public static class BaseOrchestration
         }
 
         // Resource checking:
-        // At present it is not possible to determine the load on a durable function directly. 
+        // At present it is not possible to determine the load on a durable function directly.
         // We could however possibly count the number of activities flagged as memory-intensive that are in-flight
-        // and defer on that basis. We should however use a cap to stagger the executions rather than make them 
-        // execute sequentially.
+        // and defer on that basis.
         if (AreResourcesStressed())
         {
-            if (current.SequenceNumber < Settings.ChokeCap)
-            {
-                current.Trace($"pre: Deferring execution for resources");
-                current.State = ActivityState.Deferred;
-            }
-            else
-            {
-                current.Trace("Choke Cap exceeded - switching to 'Ready'");
-                current.State = ActivityState.Ready;
-            }
+            current.Trace($"pre: Deferring execution for resources");
+            current.State = ActivityState.Deferred;
         }
         current.SyncRecordAndProduct(product);
         await _store.WriteActivityStateAsync(current);
@@ -270,7 +318,7 @@ public static class BaseOrchestration
         current.SyncRecordAndProduct(product);
         current.MarkEndTime();
         current.State = ActivityState.Finished;
-        if (product.Errors.Count == 0)
+        if (product.Errors.Length == 0)
             current.Trace("Final: All activities completed without error.");
         else
             current.Trace("Final: All Activities completed, see errors.");
@@ -284,6 +332,7 @@ public static class BaseOrchestration
         var diff = DateTime.UtcNow - time;
         return diff >= limit;
     }
+
     private static bool AreResourcesStressed()
     {
         // you may add memory and/or cpu stress detectors here

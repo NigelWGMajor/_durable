@@ -68,7 +68,6 @@ public class DataStore : IDataStore
                 return new ActivityRecord
                 {
                     UniqueKey = keyId,
-                    Trace = "Not found",
                     State = ActivityState.unknown
                 };
             return JsonSerializer.Deserialize<ActivityRecord>(json);

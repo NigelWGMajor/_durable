@@ -9,7 +9,7 @@ namespace Degreed.SafeTest
     {
         [JsonPropertyName("UniqueKey")]
         public string UniqueKey { get; set; } = "";
-        [JsonPropertyName("operationName")]
+        [JsonPropertyName("OperationName")]
         public string OperationName { get; set; } = "";
 
         [JsonPropertyName("ActivityName")]
@@ -40,7 +40,7 @@ namespace Degreed.SafeTest
         [JsonPropertyName("TimeUpdated")]
         public DateTime TimeUpdated { get; set; }
 
-        [JsonPropertyName("Notes")]
+        [JsonPropertyName("Trace")]
         public string Trace { get; set; } = "";
 
         [JsonPropertyName("ProcessId")]

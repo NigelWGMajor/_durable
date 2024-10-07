@@ -114,9 +114,10 @@ public static class SafeOrchestration
 
         var product = new Product();
         product.LastState = ActivityState.Ready;
-        product.Payload.Name = inputData.Name;
-        product.Payload.UniqueKey = inputData.UniqueKey;
-        product.Disruptions = (string[]) inputData.Disruptions.Clone();
+        product.Payload.Name = inputData?.Name?? "";
+        product.OperationName = inputData?.Name ?? "";
+        product.Payload.UniqueKey = inputData?.UniqueKey ?? "";
+        product.Disruptions = inputData?.Disruptions ?? new string[0];
 
         StartOrchestrationOptions options = new StartOrchestrationOptions
         {

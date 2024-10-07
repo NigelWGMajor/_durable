@@ -12,23 +12,25 @@ public class Product
     {
         Payload = new Payload();
     }
+    [JsonPropertyName("operationName")]
+    public string OperationName { get; set; } = "";
     [JsonPropertyName("activityName")]
     public string ActivityName { get; set; } = "";
     [JsonPropertyName("payLoad")]
     public Payload Payload { get; set; }
-        [JsonPropertyName("lastState")]
+    [JsonPropertyName("lastState")]
     public ActivityState LastState { get; set; } = ActivityState.unknown;
-        [JsonPropertyName("activityHistory")]
+    [JsonPropertyName("activityHistory")]
     public List<ActivityRecord> ActivityHistory { get; set; } = new List<ActivityRecord>();
     [JsonIgnore()]
-    public bool MayContinue => LastState != ActivityState.Redundant;
-        [JsonPropertyName("errors")]
-    public List<string> Errors = new List<string>();
-        [JsonPropertyName("instanceId")]
+    public bool IsDisrupted => Disruptions.Length > 0; 
+    [JsonPropertyName("errors")]
+    public string Errors { get; set; }  = "";
+    [JsonPropertyName("instanceId")]
     public string InstanceId { get;  set; }
-        [JsonPropertyName("disruptions")]
+    [JsonPropertyName("disruptions")]
     public string[] Disruptions { get; set; } = [];
-        [JsonPropertyName("nextDisruption")]
+    [JsonPropertyName("nextDisruption")]
     public string NextDisruption { get; private set; } 
     public static Product FromContext(TaskOrchestrationContext context)
     {

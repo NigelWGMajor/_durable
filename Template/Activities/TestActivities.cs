@@ -6,7 +6,10 @@ using System.Diagnostics;
 public static class TestActivities
 {
     [Function(nameof(StepAlpha))]
-    public static async Task<Product> StepAlpha([ActivityTrigger] Product product, FunctionContext context)
+    public static async Task<Product> StepAlpha(
+        [ActivityTrigger] Product product,
+        FunctionContext context
+    )
     {
         try
         {
@@ -21,19 +24,22 @@ public static class TestActivities
         catch (FlowManagerFatalException ex)
         {
             product.LastState = ActivityState.Failed;
-            product.Errors.Add(ex.Message);
+            product.Errors = ex.Message;
             return product;
         }
         catch (FlowManagerRetryableException ex)
         {
             product.LastState = ActivityState.Stalled;
-            product.Errors.Add(ex.Message);
+            product.Errors = ex.Message;
             return product;
         }
     }
 
     [Function(nameof(StepBravo))]
-    public static async Task<Product> StepBravo([ActivityTrigger] Product product, FunctionContext context)
+    public static async Task<Product> StepBravo(
+        [ActivityTrigger] Product product,
+        FunctionContext context
+    )
     {
         try
         {
@@ -48,19 +54,22 @@ public static class TestActivities
         catch (FlowManagerFatalException ex)
         {
             product.LastState = ActivityState.Failed;
-            product.Errors.Add(ex.Message);
+            product.Errors = ex.Message;
             return product;
         }
         catch (FlowManagerRetryableException ex)
         {
             product.LastState = ActivityState.Stalled;
-            product.Errors.Add(ex.Message);
+            product.Errors = ex.Message;
             return product;
         }
     }
 
     [Function(nameof(StepCharlie))]
-    public static async Task<Product> StepCharlie([ActivityTrigger] Product product, FunctionContext context)
+    public static async Task<Product> StepCharlie(
+        [ActivityTrigger] Product product,
+        FunctionContext context
+    )
     {
         try
         {
@@ -75,13 +84,13 @@ public static class TestActivities
         catch (FlowManagerFatalException ex)
         {
             product.LastState = ActivityState.Failed;
-            product.Errors.Add(ex.Message);
+            product.Errors = ex.Message;
             return product;
         }
         catch (FlowManagerRetryableException ex)
         {
             product.LastState = ActivityState.Stalled;
-            product.Errors.Add(ex.Message);
+            product.Errors = ex.Message;
             return product;
         }
     }
