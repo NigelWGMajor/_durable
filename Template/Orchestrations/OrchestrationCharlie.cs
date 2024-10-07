@@ -1,8 +1,7 @@
 using Degreed.SafeTest;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
-using Orchestrations;
-using static Orchestrations.BaseOrchestration;
+using static Activities.BaseActivities;
 using static TestActivities;
 
 namespace Orchestrations;

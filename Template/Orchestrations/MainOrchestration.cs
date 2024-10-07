@@ -2,18 +2,12 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.DurableTask;
 using Microsoft.DurableTask.Client;
-using Microsoft.Extensions.Logging;
 using Degreed.SafeTest;
 using static TestActivities;
-using static Orchestrations.BaseOrchestration;
-using System.Net.Mime;
-using System.Diagnostics.Tracing;
-using Microsoft.AspNetCore.CookiePolicy;
+using static Activities.BaseActivities;
 using static Orchestrations.OrchestrationAlpha;
 using static Orchestrations.OrchestrationBravo;
 using static Orchestrations.OrchestrationCharlie;
-using Azure.Core;
-using Microsoft.AspNetCore.Routing.Tree;
 
 namespace Orchestrations;
 

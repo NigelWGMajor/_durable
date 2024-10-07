@@ -1,20 +1,11 @@
-using System;
-using System.Net.Sockets;
-using System.Threading.Tasks;
 using Degreed.SafeTest;
 using Models;
 using Microsoft.DurableTask;
-using Microsoft.DurableTask.Client;
 using Microsoft.Extensions.Configuration;
-using Microsoft.AspNetCore.Mvc.Diagnostics;
-using System.Diagnostics;
-using System.ComponentModel;
 using Microsoft.Azure.Functions.Worker;
-using System.Runtime.InteropServices;
-using System.Linq;
-using Microsoft.Extensions.DependencyInjection;
 
-namespace Orchestrations;
+
+namespace Activities;
 
 /// <summary>
 /// This class extends any (sub) orchestration to integrate Flow Management
@@ -23,7 +14,7 @@ namespace Orchestrations;
 /// calls and error detection.
 /// Any orchestration class that needs this should derive from this class.
 /// </summary>
-public static class BaseOrchestration
+public static class BaseActivities
 {
     internal static TaskOptions GetOptions(
         bool longRunning = false,
@@ -95,7 +86,7 @@ public static class BaseOrchestration
 
     private static DataStore? _store;
 
-    static BaseOrchestration()
+    static BaseActivities()
     {
         var builder = new ConfigurationBuilder()
             .SetBasePath(System.IO.Directory.GetCurrentDirectory())
@@ -110,7 +101,7 @@ public static class BaseOrchestration
             throw new FlowManagerRetryableException("MetadataStore connection not provided");
     }
 
-    private static bool MatchesDisruption(string s, Disruptions d)
+    internal static bool MatchesDisruption(string s, Disruptions d)
     {
         return (s.ToLower() == d.ToString().ToLower());
     }
@@ -147,9 +138,13 @@ public static class BaseOrchestration
                         "Pre: Metadata store not available (emulated)."
                     );
                 }
+                else if (MatchesDisruption(product.NextDisruption, Disruptions.Crash))
+                {
+                    throw new FlowManagerFatalException("Pre: fatal exception (emulated)."); 
+                }
             }
         }
-        catch (Exception ex)
+        catch (FlowManagerRetryableException ex)
         {
             // This catches a metadata failure - whether emulated or resulting from the first read.
             // We assume there is no metadata, so any status will need to be communicated via the product.
@@ -281,9 +276,48 @@ public static class BaseOrchestration
         return product;
     }
 
+    internal async static Task<Product> InjectEmulations(Product product) 
+    {
+        if (product.IsDisrupted)
+        {
+            if (MatchesDisruption(product.NextDisruption, Disruptions.Pass))
+            {
+                product.LastState = ActivityState.Completed;
+            }
+            else if (MatchesDisruption(product.NextDisruption, Disruptions.Fail))
+            {
+                throw new FlowManagerFatalException("Activity: Fatal Exception (emulated).");
+            }
+            else if (MatchesDisruption(product.NextDisruption, Disruptions.Stall))
+            {
+                throw new FlowManagerRetryableException("Activity: Retryable Exception (emulated).");
+            }
+            else if (MatchesDisruption(product.NextDisruption, Disruptions.Crash))
+            {
+                throw new Exception("Activity: Exception (emulated).");
+            }
+            else if (MatchesDisruption(product.NextDisruption, Disruptions.Drag))
+            {
+                product.Errors = "Activity: Drag at half maximum time (emulated).";
+                await Task.Delay(Settings.MaximumActivityTime / 2.0);
+                // This should be allowed to complete successfully!
+            }
+            else if (MatchesDisruption(product.NextDisruption, Disruptions.Stick))
+            {
+                product.Errors = "Activity: Stick at double maximum time (emulated).";
+                await Task.Delay(Settings.MaximumActivityTime * 2);
+                // This should be abandoned and a new operation take over
+            }
+        }
+        return product; 
+    }
+
     [Function(nameof(PostProcessAsync))]
     public static async Task<Product> PostProcessAsync([ActivityTrigger] Product product)
     {
+ 
+
+
         var uniqueKey = product.Payload.UniqueKey;
         var current = await _store.ReadActivityStateAsync(uniqueKey);
         current.MarkEndTime();

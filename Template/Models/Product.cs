@@ -27,7 +27,7 @@ public class Product
     [JsonPropertyName("errors")]
     public string Errors { get; set; }  = "";
     [JsonPropertyName("instanceId")]
-    public string InstanceId { get;  set; }
+    public string InstanceId { get; set; } = "";
     [JsonPropertyName("disruptions")]
     public string[] Disruptions { get; set; } = [];
     [JsonPropertyName("nextDisruption")]

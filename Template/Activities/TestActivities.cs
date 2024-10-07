@@ -1,22 +1,28 @@
 using Microsoft.Azure.Functions.Worker;
 using Degreed.SafeTest;
 using System.Diagnostics;
+using static Activities.BaseActivities;
+using Models;
+using DurableTask.Core.Exceptions;
 
 //[DebuggerStepThrough]
 public static class TestActivities
 {
+    
+
+
     [Function(nameof(StepAlpha))]
     public static async Task<Product> StepAlpha(
         [ActivityTrigger] Product product,
         FunctionContext context
     )
     {
+        
         try
         {
-            // PRODUCT PROCESSING HERE:
-
-            await Task.Delay(TimeSpan.FromSeconds(30));
-
+            product = await InjectEmulations(product);
+            // PRODUCT PROCESSING
+            await Task.Delay(TimeSpan.FromSeconds(5));
             // PRODUCT NOW PROCESSED.
             product.LastState = ActivityState.Completed;
             return product;
@@ -43,10 +49,9 @@ public static class TestActivities
     {
         try
         {
-            // PRODUCT PROCESSING HERE:
-
-            await Task.Delay(TimeSpan.FromSeconds(20));
-
+           product = await InjectEmulations(product);
+            // PRODUCT PROCESSING
+            await Task.Delay(TimeSpan.FromSeconds(5));
             // PRODUCT NOW PROCESSED.
             product.LastState = ActivityState.Completed;
             return product;
@@ -73,10 +78,9 @@ public static class TestActivities
     {
         try
         {
-            // PRODUCT PROCESSING HERE:
-
-            await Task.Delay(TimeSpan.FromSeconds(10));
-
+            product = await InjectEmulations(product);
+            // PRODUCT PROCESSING
+            await Task.Delay(TimeSpan.FromSeconds(5));
             // PRODUCT NOW PROCESSED.
             product.LastState = ActivityState.Completed;
             return product;

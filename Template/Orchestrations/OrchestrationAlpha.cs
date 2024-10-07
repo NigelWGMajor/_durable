@@ -1,10 +1,8 @@
 using Degreed.SafeTest;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
-using Microsoft.Extensions.Options;
 using Models;
-using Orchestrations;
-using static Orchestrations.BaseOrchestration;
+using static Activities.BaseActivities;
 using static TestActivities;
 
 namespace Orchestrations;
