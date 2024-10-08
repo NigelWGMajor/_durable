@@ -1,6 +1,6 @@
 namespace Models
 {
-    public enum Disruptions
+    public enum Disruption
     {
         Wait,  // throw accessing metadata
         Crash, // throw in orchestrator 

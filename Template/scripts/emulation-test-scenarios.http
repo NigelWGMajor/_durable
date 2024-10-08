@@ -17,7 +17,9 @@ Initial Delay      |2 min  |5 min    |10 min    |8 min      |10 min
 Backoff Coefficient|1.0x   |2.0x     |1.4141x   |1.4141x    |2x    
 Max Delay          |3 hr   |3 hr     |3 hr      |3 hr       |3 hr
 Timeout            |10 min |2 hr     |6 hr      |12 hr      |8 hr
-
+MaxActivityTime    |2 min  |12 hr    |12 hr     |12 hr      |12 hr    
+StickCap           |1      |2        |2         |2          |2        
+WaitTime           |2 min  |10 min   |10 min    |10 min     |10 min   
 */
 /*
 
@@ -102,6 +104,14 @@ Content-Type: application/json
         "Pass" 
     ]
 }
+
+HTTP/1.1 202  - Accepted
+connection: close
+content-type: application/json
+date: Tue, 08 Oct 2024 19:03:34 GMT
+server: Kestrel
+location: http://localhost:7071/runtime/webhooks/durabletask/instances/Main-Pass_explicit_or_implied_allows_activities_to_complete_successfully-2012-24-10-08T07%3A07%3A34%3A049?code=CKKvhUY-uSSBeA15tM6VP3C5NitoRJTd-YqG_zHAJkFkAzFuf85JyA==
+transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
 Content-Type: application/json

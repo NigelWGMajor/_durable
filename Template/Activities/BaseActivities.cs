@@ -3,7 +3,7 @@ using Models;
 using Microsoft.DurableTask;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Azure.Functions.Worker;
-
+using System.Runtime.ConstrainedExecution;
 
 namespace Activities;
 
@@ -52,7 +52,7 @@ public static class BaseActivities
 
             Settings.MaximumActivityTime = TimeSpan.FromHours(12);
             Settings.StickCap = 2;
-            Settings.WaitTime = TimeSpan.FromMinutes(2); //!  need to adjust to 10
+            Settings.WaitTime = TimeSpan.FromMinutes(10); //!  need to adjust to 10
             // overrides are cumulative
             if (highDataOrFile)
             { // increased latency, lengthen recovery period
@@ -101,7 +101,7 @@ public static class BaseActivities
             throw new FlowManagerRetryableException("MetadataStore connection not provided");
     }
 
-    internal static bool MatchesDisruption(string s, Disruptions d)
+    internal static bool MatchesDisruption(string s, Disruption d)
     {
         return (s.ToLower() == d.ToString().ToLower());
     }
@@ -131,16 +131,19 @@ public static class BaseActivities
             current = await _store.ReadActivityStateAsync(uniqueKey);
             if (product.IsDisrupted)
             {
-                product.PopDisruption();
-                if (MatchesDisruption(product.NextDisruption, Disruptions.Wait))
+                if (product.ActivityName != current.ActivityName)
+                {
+                    product.PopDisruption();
+                }
+                if (MatchesDisruption(product.NextDisruption, Disruption.Wait))
                 {
                     throw new FlowManagerRetryableException(
                         "Pre: Metadata store not available (emulated)."
                     );
                 }
-                else if (MatchesDisruption(product.NextDisruption, Disruptions.Crash))
+                else if (MatchesDisruption(product.NextDisruption, Disruption.Crash))
                 {
-                    throw new FlowManagerFatalException("Pre: fatal exception (emulated)."); 
+                    throw new FlowManagerFatalException("Pre: fatal exception (emulated).");
                 }
             }
         }
@@ -182,8 +185,8 @@ public static class BaseActivities
                 {
                     // it looks like there was a metadata failure at incept.
                     current.Trace($"{product.Errors}");
-                        current.SyncRecordAndProduct(product);
-                        await _store.WriteActivityStateAsync(current);
+                    current.SyncRecordAndProduct(product);
+                    await _store.WriteActivityStateAsync(current);
                     product.Errors = "";
                     return product;
                 }
@@ -276,48 +279,47 @@ public static class BaseActivities
         return product;
     }
 
-    internal async static Task<Product> InjectEmulations(Product product) 
+    internal async static Task<Product> InjectEmulations(Product product)
     {
         if (product.IsDisrupted)
         {
-            if (MatchesDisruption(product.NextDisruption, Disruptions.Pass))
+            if (MatchesDisruption(product.NextDisruption, Disruption.Pass))
             {
                 product.LastState = ActivityState.Completed;
             }
-            else if (MatchesDisruption(product.NextDisruption, Disruptions.Fail))
+            else if (MatchesDisruption(product.NextDisruption, Disruption.Fail))
             {
                 throw new FlowManagerFatalException("Activity: Fatal Exception (emulated).");
             }
-            else if (MatchesDisruption(product.NextDisruption, Disruptions.Stall))
+            else if (MatchesDisruption(product.NextDisruption, Disruption.Stall))
             {
-                throw new FlowManagerRetryableException("Activity: Retryable Exception (emulated).");
+                throw new FlowManagerRetryableException(
+                    "Activity: Retryable Exception (emulated)."
+                );
             }
-            else if (MatchesDisruption(product.NextDisruption, Disruptions.Crash))
+            else if (MatchesDisruption(product.NextDisruption, Disruption.Crash))
             {
                 throw new Exception("Activity: Exception (emulated).");
             }
-            else if (MatchesDisruption(product.NextDisruption, Disruptions.Drag))
+            else if (MatchesDisruption(product.NextDisruption, Disruption.Drag))
             {
                 product.Errors = "Activity: Drag at half maximum time (emulated).";
                 await Task.Delay(Settings.MaximumActivityTime / 2.0);
                 // This should be allowed to complete successfully!
             }
-            else if (MatchesDisruption(product.NextDisruption, Disruptions.Stick))
+            else if (MatchesDisruption(product.NextDisruption, Disruption.Stick))
             {
                 product.Errors = "Activity: Stick at double maximum time (emulated).";
                 await Task.Delay(Settings.MaximumActivityTime * 2);
                 // This should be abandoned and a new operation take over
             }
         }
-        return product; 
+        return product;
     }
 
     [Function(nameof(PostProcessAsync))]
     public static async Task<Product> PostProcessAsync([ActivityTrigger] Product product)
     {
- 
-
-
         var uniqueKey = product.Payload.UniqueKey;
         var current = await _store.ReadActivityStateAsync(uniqueKey);
         current.MarkEndTime();
@@ -351,11 +353,16 @@ public static class BaseActivities
         var current = await _store.ReadActivityStateAsync(uniqueKey);
         current.SyncRecordAndProduct(product);
         current.MarkEndTime();
-        current.State = ActivityState.Finished;
-        if (product.Errors.Length == 0)
-            current.Trace("Final: All activities completed without error.");
+        if (current.State == ActivityState.Completed)
+        {
+            current.State = ActivityState.Successful;
+            current.Trace("Final: Successfully completed");
+        }
         else
-            current.Trace("Final: All Activities completed, see errors.");
+        {
+            current.State = ActivityState.Unsuccessful;
+            current.Trace("Final: Failed to complete");
+        }
         await _store.WriteActivityStateAsync(current);
         current.SyncRecordAndProduct(product);
         return product;

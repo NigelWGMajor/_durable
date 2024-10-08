@@ -4,8 +4,9 @@ using Degreed.SafeTest;
 using Microsoft.DurableTask;
 using Microsoft.Identity.Client;
 using Microsoft.Net.Http.Headers;
+using Models;
 
-[DebuggerStepThrough]
+//[DebuggerStepThrough]
 public class Product
 {
     public Product()
@@ -23,7 +24,7 @@ public class Product
     [JsonPropertyName("activityHistory")]
     public List<ActivityRecord> ActivityHistory { get; set; } = new List<ActivityRecord>();
     [JsonIgnore()]
-    public bool IsDisrupted => Disruptions.Length > 0; 
+    public bool IsDisrupted => Disruptions.Length > 0 || NextDisruption.Length > 0; 
     [JsonPropertyName("errors")]
     public string Errors { get; set; }  = "";
     [JsonPropertyName("instanceId")]
@@ -31,7 +32,7 @@ public class Product
     [JsonPropertyName("disruptions")]
     public string[] Disruptions { get; set; } = [];
     [JsonPropertyName("nextDisruption")]
-    public string NextDisruption { get; private set; } 
+    public string NextDisruption { get; set; } = "";
     public static Product FromContext(TaskOrchestrationContext context)
     {
         return context.GetInput<Product>();
@@ -48,7 +49,14 @@ public class Product
             NextDisruption = "";
         else
         {
-            NextDisruption = Disruptions[0];
+            if (Disruptions[0].Length == 0)
+            {
+                NextDisruption = Disruption.Pass.ToString();
+            }
+            else
+            {
+                NextDisruption = Disruptions[0];
+            }
             string[] temp = new string[Disruptions.Length - 1];
             string result = Disruptions[0];
             for (int i = 0; i < temp.Length; i++)
