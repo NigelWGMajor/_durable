@@ -16,6 +16,18 @@ namespace Activities;
 /// </summary>
 public static class BaseActivities
 {
+    /// <summary>
+    /// The options generated for tuning retries are decided here based on some generic inputs.
+    /// If the operation is Disrupted (i.e. emulated disruptions have been injected for testing)
+    /// then a set of values is provided to expedite integration testing. Otherwise defaults 
+    /// are established, and some or all of these may be overridden by the presence of flags specifying
+    /// that the activity is Long Running, has High Memory Usage or has intensive data or file IO.
+    /// </summary>
+    /// <param name="longRunning"></param>
+    /// <param name="highMemory"></param>
+    /// <param name="highDataOrFile"></param>
+    /// <param name="isDisrupted"></param>
+    /// <returns></returns>
     internal static TaskOptions GetOptions(
         bool longRunning = false,
         bool highMemory = false,
@@ -137,6 +149,7 @@ public static class BaseActivities
                 }
                 if (MatchesDisruption(product.NextDisruption, Disruption.Wait))
                 {
+                    current.NoteReason();
                     throw new FlowManagerRetryableException(
                         "Pre: Metadata store not available (emulated)."
                     );
@@ -157,7 +170,7 @@ public static class BaseActivities
             // we choose deferred to give the metadata store time to recover.
             return product;
         }
-        if (current.State == ActivityState.Finished)
+        if (current.State == ActivityState.Successful || current.State == ActivityState.Unsuccessful)
         {
             // This has already been run!
             current.State = ActivityState.Redundant;
@@ -259,10 +272,15 @@ public static class BaseActivities
             case ActivityState.Failed:
                 current.Trace($"Pre: Failed fatally");
                 break;
-            case ActivityState.Finished:
-                current.Trace($"Pre: Re-entrant call rejected on Finished activity");
+            case ActivityState.Successful:
+                current.Trace($"Pre: Re-entrant call rejected on successfully finished operation");
                 product.LastState = ActivityState.Redundant;
                 return product;
+            case ActivityState.Unsuccessful:
+                current.Trace($"Pre: Re-entrant call rejected on previously unsuccessful operation");
+                product.LastState = ActivityState.Redundant;
+                return product;
+                
         }
 
         // Resource checking:

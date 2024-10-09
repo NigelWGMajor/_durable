@@ -164,7 +164,9 @@ values ('Stalled');
 insert into rpt.FlowStates(FlowStateName)
 values ('Failed');
 insert into rpt.FlowStates(FlowStateName)
-values ('Finished');
+values ('Successful');
+insert into rpt.FlowStates(FlowStateName)
+values ('Unsuccessful');
 -- create OperationFlowStates table to house runtime flow states
 print '*** Creating OperationFlowStates table';
 go
@@ -180,6 +182,7 @@ create table [rpt].[OperationFlowStates](
     [ActivityStateName] [nvarchar](100) NULL,
     [Count] [int] NULL,
     [Trace] [nvarchar](max) NULL,
+    [Reason] [nvarchar](max) NULL,
     [ProcessId] [nvarchar](100) NULL,
     [SequenceNumber] [int] NULL,
     constraint [PK_rpt.ReportFlowStates] primary key clustered ([OperationFlowStateID] asc) with (
@@ -198,19 +201,20 @@ go -- create history table
     print '*** Creating OperationFlowStatesHistory table';
 	go
 create table [rpt].[OperationFlowStateHistory](
-    [OperationFlowStateHistoryID] [bigint] identity(1, 1) NOT NULL,
-    [UniqueKey] [nvarchar](100) NOT NULL,
-    [OperationName] [nvarchar](100) NULL,
-    [ActivityName] [nvarchar](100) NOT NULL,
-    [TimeStarted] [datetime2](7) NULL,
-    [TimeEnded] [datetime2](7) NULL,
-    [TimeUpdated] [datetime2](7) NULL,
-    [ActivityState] [tinyint] NULL,
-    [ActivityStateName] [nvarchar](100) NULL,
-    [Count] [int] NULL,
-    [Trace] [nvarchar](max) NULL,
-    [ProcessId] [nvarchar](100) NULL,
-    [SequenceNumber] [int] NULL,
+    [OperationFlowStateHistoryID] [bigint] identity(1, 1) not null,
+    [UniqueKey] [nvarchar](100) not null,
+    [OperationName] [nvarchar](100) null,
+    [ActivityName] [nvarchar](100) not null,
+    [TimeStarted] [datetime2](7) null,
+    [TimeEnded] [datetime2](7) null,
+    [TimeUpdated] [datetime2](7) null,
+    [ActivityState] [tinyint] null,
+    [ActivityStateName] [nvarchar](100) null,
+    [Count] [int] null,
+    [Trace] [nvarchar](max) null,
+    [Reason] [nvarchar](max) null,
+    [ProcessId] [nvarchar](100) null,
+    [SequenceNumber] [int] null,
     constraint [PK_rpt.OperationFlowStateHistory] primary key clustered ([OperationFlowStateHistoryID] asc) with (
         pad_index = off,
         statistics_norecompute = off,
@@ -235,6 +239,7 @@ select (
             TimeEnded,
             TimeUpdated,
             Trace,
+            Reason,
             ProcessId,
             [Count],
             SequenceNumber
@@ -257,6 +262,7 @@ merge rpt.OperationFlowStates as target using (
         json_value(@json, '$.ActivityState') as ActivityState,
         json_value(@json, '$.ActivityStateName') as ActivityStateName,
         json_value(@json, '$.Trace') as Trace,
+        json_value(@json, '$.Reason') as Reason,
         json_value(@json, '$.ProcessId') as ProcessId,
         json_value(@json, '$.Count') as [Count],
         json_value(@json, '$.SequenceNumber') as SequenceNumber,
@@ -270,6 +276,7 @@ set OperationName = source.OperationName,
     ActivityState = source.ActivityState,
     ActivityStateName = source.ActivityStateName,
     Trace = source.Trace,
+    Reason = source.Reason,
     ProcessId = source.ProcessId,
     SequenceNumber = source.SequenceNumber,
     [Count] = source.[Count],
@@ -284,6 +291,7 @@ insert (
         ActivityState,
         ActivityStateName,
         Trace,
+        Reason,
         ProcessId,
         SequenceNumber,
         TimeUpdated,
@@ -298,6 +306,7 @@ values (
         source.ActivityState,
         source.ActivityStateName,
         source.Trace,
+        source.Reason,
         source.ProcessId,
         source.SequenceNumber,
         source.TimeUpdated,
@@ -313,6 +322,7 @@ insert into rpt.OperationFlowStateHistory (
         ActivityState,
         ActivityStateName,
         Trace,
+        Reason,
         ProcessId,
         [Count],
         SequenceNumber,
@@ -327,6 +337,7 @@ values (
         json_value(@json, '$.ActivityState'),
         json_value(@json, '$.ActivityStateName'),
         json_value(@json, '$.Trace'),
+        json_value(@json, '$.Reason'),
         json_value(@json, '$.ProcessId'),
         json_value(@json, '$.Count'),
         json_value(@json, '$.SequenceNumber'),
@@ -340,7 +351,7 @@ create or alter procedure [rpt].[OperationFlowState_Purge] as
 begin
 set nocount on;
 delete from rpt.OperationFlowStates
-where ActivityState = 9;
+where ActivityState = 9 or ActivityState = 10;
 -- rebuild any indexes
 alter index all on rpt.operationFlowStates rebuild;
 end;
