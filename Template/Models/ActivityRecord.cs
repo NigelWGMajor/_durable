@@ -70,12 +70,12 @@ namespace Degreed.SafeTest
             record.TimeEnded = DateTime.UtcNow;
         }
 
-        public static void Trace(this ActivityRecord record, string message)
+        public static void AddTrace(this ActivityRecord record, string message)
         {
             record.Trace = $"{message}\n{record.Trace}";
         }
 
-        public static void RecordReason(this ActivityRecord record, string message)
+        public static void AddReason(this ActivityRecord record, string message)
         {
             if (record.Trace.Length > 0)
                 record.Trace = $"{record.Trace}{record.SequenceNumber}:{message}\n";

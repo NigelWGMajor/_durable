@@ -58,7 +58,7 @@ POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
-    "name":"Normal_operation_should_finish_successfully", 
+    "name":"Normal_operation_should_finish_successfully_despite_reentrant_calls", 
     "uniqueKey":"1003"
 }
 ###
@@ -104,14 +104,6 @@ Content-Type: application/json
         "Pass" 
     ]
 }
-
-HTTP/1.1 202  - Accepted
-connection: close
-content-type: application/json
-date: Tue, 08 Oct 2024 19:11:58 GMT
-server: Kestrel
-location: http://localhost:7071/runtime/webhooks/durabletask/instances/Main-Pass_explicit_or_implied_allows_activities_to_complete_successfully-2012-24-10-08T07%3A07%3A58%3A074?code=CKKvhUY-uSSBeA15tM6VP3C5NitoRJTd-YqG_zHAJkFkAzFuf85JyA==
-transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
 Content-Type: application/json
