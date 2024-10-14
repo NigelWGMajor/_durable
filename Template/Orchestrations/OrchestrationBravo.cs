@@ -1,8 +1,7 @@
 using Degreed.SafeTest;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
-using Orchestrations;
-using static Orchestrations.BaseOrchestration;
+using static Activities.BaseActivities;
 using static TestActivities;
 
 namespace Orchestrations;
@@ -22,7 +21,6 @@ public static class OrchestrationBravo
     {
         ILogger logger = context.CreateReplaySafeLogger(nameof(RunOrchestrationBravo));
         Product product = new Product();
-        bool isDisrupted = product.Disruptions.Length > 0;
         product.InstanceId = context.InstanceId;
         if (!context.IsReplaying)
         {
@@ -31,12 +29,12 @@ public static class OrchestrationBravo
             product.ActivityName = _operation_name_;
         }
 
-        product.Payload.Id = System.Diagnostics.Process.GetCurrentProcess().Id;
+        //product.Payload.Id = System.Diagnostics.Process.GetCurrentProcess().Id;
 
         product = await context.CallActivityAsync<Product>(
             nameof(PreProcessAsync),
             product,
-            GetOptions(isDisrupted: isDisrupted).WithInstanceId($"{context.InstanceId})-pre")
+            GetOptions(isDisrupted: product.IsDisrupted).WithInstanceId($"{context.InstanceId})-pre")
         );
         if (product.LastState == ActivityState.Deferred)
             await context.CreateTimer(TimeSpan.FromSeconds(1), CancellationToken.None);
@@ -56,13 +54,13 @@ public static class OrchestrationBravo
             product = await context.CallActivityAsync<Product>(
                 _operation_name_,
                 product,
-                GetOptions(longRunning, highMemory, highDataOrFile, isDisrupted)
+                GetOptions(longRunning, highMemory, highDataOrFile, product.IsDisrupted)
                     .WithInstanceId($"{context.InstanceId})-activity")
             );
             product = await context.CallActivityAsync<Product>(
                 nameof(PostProcessAsync),
                 product,
-                GetOptions(isDisrupted: isDisrupted).WithInstanceId($"{context.InstanceId})-post")
+                GetOptions(isDisrupted: product.IsDisrupted).WithInstanceId($"{context.InstanceId})-post")
             );
             return product;
         }

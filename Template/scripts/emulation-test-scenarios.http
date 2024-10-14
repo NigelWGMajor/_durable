@@ -17,7 +17,9 @@ Initial Delay      |2 min  |5 min    |10 min    |8 min      |10 min
 Backoff Coefficient|1.0x   |2.0x     |1.4141x   |1.4141x    |2x    
 Max Delay          |3 hr   |3 hr     |3 hr      |3 hr       |3 hr
 Timeout            |10 min |2 hr     |6 hr      |12 hr      |8 hr
-
+MaxActivityTime    |2 min  |12 hr    |12 hr     |12 hr      |12 hr    
+StickCap           |1      |2        |2         |2          |2        
+WaitTime           |2 min  |10 min   |10 min    |10 min     |10 min   
 */
 /*
 
@@ -29,6 +31,9 @@ Timeout            |10 min |2 hr     |6 hr      |12 hr      |8 hr
 ## Happy path running in parallel
 
 Three records with Unique Keys. Each takes a minute or so to complete.
+*/
+/*
+
 */
 /*
 ## Happy Path operations running in parallel
@@ -48,19 +53,14 @@ Content-Type: application/json
     "name":"normal_operation_should_finish_successfully", 
     "uniqueKey":"1002"
 }
-### 
+###
 POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
-    "name":"Normal_operation_should_finish_successfully", 
+    "name":"Normal_operation_should_finish_successfully_despite_reentrant_calls", 
     "uniqueKey":"1003"
 }
-/*
-## Redundant call
-
-A call with the same unique key as a finished operation is rejected as redundant.
-*/
 ###
 POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -69,11 +69,6 @@ Content-Type: application/json
     "name":"Redundant_operation_call_should_be_ignored", 
     "uniqueKey":"1003"
 }
-/*
-## Metadata access
-
-If the metadata calls before or after the activity fail, these are handled through the Durable Function retry mechanism with default settings. 
-*/
 ###
 POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -85,11 +80,6 @@ Content-Type: application/json
         "Wait"
     ]
 }
-/*
-## Crash
-
-Crash injects an orchestration exception. An exception at the orchestrator level is handled by the Azure Function framework. 
-*/
 ###
 POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -102,60 +92,18 @@ Content-Type: application/json
         "Crash" 
     ]
 }
-/*
-## Pass
-
-Pass allows an activity to complete successfully. This can be injected at earlier activities to inject disruptions in later activities. This is also the default for an empty disruption.
-
-In the example below:
-
-- the first should pass because the value is empty, 
-- the second because it is explicitly "Pass", 
-- the third because it will use default, which is also Pass.
-*/
 ###
 POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
     "name":"Pass_explicit_or_implied_allows_activities_to_complete_successfully", 
-    "uniqueKey":"2011",
+    "uniqueKey":"2012",
     "disruptions":[
         "",
         "Pass" 
     ]
 }
-/*
-## Choke
-
-Resources (Memory, Cpu or Disk Space) can be restricted, resulting in the orchestration being deferred. 
-
-Activities sensitive to those particular restrictions may have different detection thresholds. Statistical information gathered at run time may help to tune these requirements.
-
-In this case the second activity will be deferred because of restricted resources.
-*/
-###
-POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
-Content-Type: application/json
-
-{
-    "name":"Choke_should_inject_resource_depletion", 
-    "uniqueKey":"2012",
-    "disruptions":[
-        "",
-        "Choke"
-    ]
-}
-/*
-## Stall
-
-A non-fatal exception occurs in the activity. The retry policy will be adjusted according to the constants options selected in each sub-orchestration: 
-
-- longRunning      if the activity can be expected to run for a long time
-- highMemory       if a significant amount of free memory is required 
-- highDataOrFile   if the activity is IO-intensive
-
-*/
 ###
 POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -168,13 +116,6 @@ Content-Type: application/json
         "Stall"
     ]
 }
-/*
-## Fail
-
-A fatal exception occurs in the activity. This will bubble up to the durable framework and be reported as an exception.
-
-In this case the second activity of the operation throws the exception.
-*/
 ###
 POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -187,13 +128,6 @@ Content-Type: application/json
         "Fail"
     ]
 }
-/*
-## Drag
-
-An activity takes a very long time, but not long enough for the orchestration to time out. 
-
-This opens the door for re-entrant calls, which should be treated as redundant and ignored.
-*/
 ###
 POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -205,26 +139,14 @@ Content-Type: application/json
         "Drag"
     ]
 }
-/*
-_Wait long enough for the activity to have become active, but not enough time for it to have completed or timed out_
-
-Then try to launch the same operation, which should be treated as redundant.
-*/
 ###
 POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
     "name":"redundant_call_during_drag_should_become_redundant", 
-    "uniqueKey":"2015",
+    "uniqueKey":"2015"
 }
-/*
-## Stick
-
-An activity takes so long that it exceeds the Orchestration timeout period. 
-
-A new instance should start (unless capped). 
-*/
 ###
 POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
 Content-Type: application/json
