@@ -6,7 +6,7 @@ using Microsoft.Identity.Client;
 using Microsoft.Net.Http.Headers;
 using Models;
 
-//[DebuggerStepThrough]
+[DebuggerStepThrough]
 public class Product
 {
     public Product()

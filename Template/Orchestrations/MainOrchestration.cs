@@ -5,9 +5,9 @@ using Microsoft.DurableTask.Client;
 using Degreed.SafeTest;
 using static TestActivities;
 using static Activities.BaseActivities;
-using static Orchestrations.OrchestrationAlpha;
-using static Orchestrations.OrchestrationBravo;
-using static Orchestrations.OrchestrationCharlie;
+using static Orchestrations.SubOrchestrationAlpha;
+using static Orchestrations.SubOrchestrationBravo;
+using static Orchestrations.SubOrchestrationCharlie;
 
 namespace Orchestrations;
 
@@ -33,38 +33,44 @@ public static class SafeOrchestration
         /**/{
             /**/logger.LogInformation("*** Initializing Product");
             /**/product = Product.FromContext(context);
-            /**/product.ActivityName = nameof(StepAlpha);
+            product.ActivityName = nameof(ActivityAlpha);
             /**/
             /**/
         }
+        if (MatchesDisruption(product.NextDisruption, Models.Disruption.Crash))
+            throw new Exception("Emulated Crash in main orchestrator");
         /**/string id = context.InstanceId;
         /**/int index = 3;
         /**/context.SetCustomStatus($"{product.LastState}{index:00}");
         /**/product = await context.CallSubOrchestratorAsync<Product>(
-            nameof(RunOrchestrationAlpha),
+            nameof(OrchestrationAlpha),
             /**/product,
             GetOptions(true).WithInstanceId($"{id}Alpha)")
         /**/);
+        if (MatchesDisruption(product.NextDisruption, Models.Disruption.Crash))
+            throw new Exception("Emulated Crash in main orchestrator");
         /**/index += 3;
         /**/context.SetCustomStatus($"{product.LastState}{index:00}");
         /**/if (product.LastState != ActivityState.Redundant)
         /**/{
             /**/product = await context.CallSubOrchestratorAsync<Product>(
-                nameof(RunOrchestrationBravo),
+                nameof(OrchestrationBravo),
                 /**/product,
                 GetOptions(true, true, true).WithInstanceId($"{id}Bravo)")
             /**/);
             /**/
             /**/
         }
+        if (MatchesDisruption(product.NextDisruption, Models.Disruption.Crash))
+            throw new Exception("Emulated Crash in main orchestrator");
         /**/index += 3;
         /**/context.SetCustomStatus($"{product.LastState}{index:00}");
         /**/if (product.LastState != ActivityState.Redundant)
         /**/{
             /**/product = await context.CallSubOrchestratorAsync<Product>(
-                nameof(RunOrchestrationCharlie),
+                nameof(OrchestrationCharlie),
                 /**/product,
-                GetOptions(false, true, true).WithInstanceId($"{id}Charlie)")
+                GetOptions(false, true, true, true).WithInstanceId($"{id}Charlie)")
             /**/);
             /**/
         }

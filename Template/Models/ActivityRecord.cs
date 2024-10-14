@@ -58,8 +58,10 @@ namespace Degreed.SafeTest
         public string Reason { get; set; } = "";
     }
 
+    [DebuggerStepThrough]
     public static class ActivityRecordExtender
     {
+        private static readonly string _eol_ = "\r\n";
         public static void MarkStartTime(this ActivityRecord record)
         {
             record.TimeStarted = DateTime.UtcNow;
@@ -72,15 +74,15 @@ namespace Degreed.SafeTest
 
         public static void AddTrace(this ActivityRecord record, string message)
         {
-            record.Trace = $"{message}\n{record.Trace}";
+            record.Trace = $"{message}{_eol_}{record.Trace}";
         }
 
         public static void AddReason(this ActivityRecord record, string message)
         {
-            if (record.Trace.Length > 0)
-                record.Trace = $"{record.Trace}{record.SequenceNumber}:{message}\n";
+            if (record.Reason.Length > 0)
+                record.Reason = $"{record.Reason}{record.SequenceNumber}:{message}{_eol_}";
             else
-                record.Trace = $"{record.SequenceNumber}:{message}\n";
+                record.Reason = $"{record.SequenceNumber}:{message}{_eol_}";
         }
 
         /// <summary>

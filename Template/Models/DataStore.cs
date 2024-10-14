@@ -13,7 +13,7 @@ public interface IDataStore
     Task WriteActivityStateAsync(ActivityRecord record);
 }
 
-//[DebuggerStepThrough]
+[DebuggerStepThrough]
 public class DataStore : IDataStore
 {
     private readonly string _connectionString;

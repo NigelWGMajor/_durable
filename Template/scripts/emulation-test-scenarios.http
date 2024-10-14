@@ -88,7 +88,6 @@ Content-Type: application/json
     "name":"Crash_should_inject_orchestrator_exception", 
     "uniqueKey":"2011",
     "disruptions":[
-        "",
         "Crash" 
     ]
 }
