@@ -68,14 +68,19 @@ public static class TestActivities
                 product.PopDisruption();
                 product.LastState = ActivityState.Active;
             }
-           product = await InjectEmulations(product);
+            
+            product = await InjectEmulations(product);
             if (product.LastState == ActivityState.Failed)
             {
                 throw new FlowManagerFatalException(product.Errors);
             }
-            // PRODUCT PROCESSING
-            if (product.LastState == ActivityState.Active)
+            if (product.LastState == ActivityState.Stalled)
+            {   // a disruptino has been injected to 
+                throw new FlowManagerRetryableException(product.Errors);
+            }
+            else if (product.LastState == ActivityState.Active)
             {
+            // PRODUCT PROCESSING!
             await Task.Delay(TimeSpan.FromSeconds(5));
             // PRODUCT NOW PROCESSED.
             product.LastState = ActivityState.Completed;
@@ -102,8 +107,11 @@ public static class TestActivities
             var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
             current.State = ActivityState.PostStalled;
             current.AddReason(ex.Message);
+            current.AddTrace("Activity Bravo throws retryable exception");
             await _store.WriteActivityStateAsync(current);
             throw;
+            //product.LastState = ActivityState.PostStalled;
+            //return product;
         }
     }
 

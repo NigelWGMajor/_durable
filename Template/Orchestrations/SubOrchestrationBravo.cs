@@ -49,6 +49,10 @@ public static class SubOrchestrationBravo                                   // r
         {
             return product;
         }
+        else if (product.LastState == ActivityState.PostStalled)
+        {   // force the framework to retry
+            throw new FlowManagerRetryableException(product.Errors);
+        }
         else if (product.LastState != ActivityState.Active)
         {
             context.ContinueAsNew(product);
@@ -57,7 +61,7 @@ public static class SubOrchestrationBravo                                   // r
         if (
             product.LastState != ActivityState.Redundant && product.ActivityName == _operation_name_
         )
-        {
+        {   // right here is where we are either retrying or starting the activity
             product = await context.CallActivityAsync<Product>(
                 _operation_name_,
                 product,
@@ -72,6 +76,15 @@ public static class SubOrchestrationBravo                                   // r
             if (product.LastState == ActivityState.Failed)
             {
                 throw new FlowManagerFatalException(product.Errors);
+            }
+            else if (product.LastState == ActivityState.Stalled)
+            {
+                 /// <summary>
+                 ///  set up for a retry without executing again
+                 /// </summary>
+                 product.LastState = ActivityState.PostStalled;
+                 context.ContinueAsNew(product);
+                 return product;
             }
             return product;
         }

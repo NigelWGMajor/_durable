@@ -26,8 +26,8 @@ public static class SubOrchestrationAlpha                                   // r
         ILogger logger = context.CreateReplaySafeLogger(_orchestration_name_);
         Product product; // = new Product();
 
-        try
-        {
+//        try
+  //      {
             product = context.GetInput<Product>() ?? new Product();
             product.ActivityName = _operation_name_;
             product.InstanceId = context.InstanceId;
@@ -49,6 +49,10 @@ public static class SubOrchestrationAlpha                                   // r
             else if (product.LastState == ActivityState.Redundant)
             {
                 return product;
+        }
+        else if (product.LastState == ActivityState.PostStalled)
+        {   // force the framework to retry
+            throw new FlowManagerRetryableException(product.Errors);
             }
             else if (product.LastState != ActivityState.Active)
             {
@@ -74,16 +78,25 @@ public static class SubOrchestrationAlpha                                   // r
                 {
                     throw new FlowManagerFatalException(product.Errors);
                 }
-                return product;
-            }
-            else
+            else if (product.LastState == ActivityState.Stalled)
             {
-                return product;
+                 /// <summary>
+                 ///  set up for a retry without executing again
+                 /// </summary>
+                 product.LastState = ActivityState.PostStalled;
+                 context.ContinueAsNew(product);
+                 return product;
             }
+            return product;
         }
-        catch (Exception ex)
+        else
         {
-            throw;
-        } 
+            return product;
+        }
+//    }
+  //      catch (Exception ex)
+    //    {
+      //      throw;
+        //} 
     }
 }

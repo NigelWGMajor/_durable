@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Azure.Functions.Worker;
 using System.Runtime.ConstrainedExecution;
 using System.Diagnostics;
+using Microsoft.Identity.Client.Extensibility;
 
 namespace Activities;
 
@@ -150,6 +151,7 @@ public static class BaseActivities
         try
         {
             current = await _store.ReadActivityStateAsync(uniqueKey);
+            ;
             if (product.IsDisrupted)
             {
                 if (product.ActivityName != current.ActivityName)
@@ -163,10 +165,6 @@ public static class BaseActivities
                         "Pre: Metadata store not available (emulated)."
                     );
                 }
-                // else if (MatchesDisruption(product.NextDisruption, Disruption.Crash))
-                // {
-                //     throw new FlowManagerFatalException("Pre: fatal exception (emulated).");
-                // }
             }
         }
         catch (FlowManagerRetryableException ex)
@@ -236,14 +234,14 @@ public static class BaseActivities
                 // in these cases regard as Ready.
                 // current.MarkStartTime();
                 current.State = ActivityState.Ready;
-                current.AddTrace($"Pre: Deferred for resources");
+                current.AddTrace($"Pre: Activity {current.ActivityName} deferred for resources");
                 current.Count++;
                 break;
             case ActivityState.Ready:
                 //current.MarkStartTime();
                 current.State = ActivityState.Active;
                 current.Count++;
-                current.AddTrace($"Pre: Awaiting execution");
+                current.AddTrace($"Pre: Activity {current.ActivityName} awaiting execution");
                 break;
             case ActivityState.Redundant:
                 // the item is blocked from this execution thread.
@@ -277,12 +275,21 @@ public static class BaseActivities
                 throw new FlowManagerFatalException("Stuck activity detected in PreProcessor!");
             case ActivityState.Stalled: // this is handled by the durable function framework.
                 current.Count++;
+                current.SequenceNumber++;             
                 current.State = ActivityState.Ready;
                 product.PopDisruption();
                 current.AddTrace($"Ready after stalled retry delay");
                 current.AddReason("Durable Function Retry Policy applied.");
                 // }
                 break;
+            case ActivityState.PostStalled:
+                current.AddReason("Prior Stall detected.");
+                // when stalled, we should not be looking at the next activity yet!
+                product.ActivityName = current.ActivityName;
+                current.State = ActivityState.Ready;
+                await _store.WriteActivityStateAsync(current);
+                product.Errors = "";
+                return product;
             case ActivityState.Completed:
                 // this typically means that the previous activity was successful.
                 // current.MarkStartTime();
@@ -377,22 +384,33 @@ public static class BaseActivities
         current.SyncRecordAndProduct(product);
         switch (current.State)
         {
-            case ActivityState.Stalled: // defer to prevailing Durable Function retry policy
-                current.AddTrace("Activity stalled with non-fatal error.");
+           case ActivityState.Stalled:
+                throw new FlowManagerRetryableException("Thrown in postprocess");
+                current.AddTrace($"Activity {current.ActivityName} stalled with non-fatal error.");
+                product.LastState = ActivityState.Stalled;
+                current.SyncRecordAndProduct(product);
+                    current.State = ActivityState.Stalled; // so that it will retry.
+                    await _store.WriteActivityStateAsync(current);
+                    return product;
+                
+                // otherwise set up to retry
+            case ActivityState.PostStalled: // defer to prevailing Durable Function retry policy
+                current.AddTrace($"Activity {current.ActivityName} stalled with non-fatal error.");
                 current.AddReason(product.Errors);
                 current.Count++;
                 current.SyncRecordAndProduct(product);
+                current.State = ActivityState.Ready; // so that it will retry.
                 await _store.WriteActivityStateAsync(current);
                 throw new FlowManagerRetryableException(
                     $"Post: Retryable FlowManager Exception: {product.ActivityHistory}"
                 );
             case ActivityState.Failed: // throw up to orchestrator.
-                current.AddTrace("Activity failed with fatal error.");
+                current.AddTrace($"Activity {current.ActivityName} failed with fatal error.");
                 current.State = ActivityState.Unsuccessful;
                 await _store.WriteActivityStateAsync(current);
                 return product;
             default:
-                current.AddTrace("Post: Activity completed successfully.");
+                current.AddTrace($"Post: Activity {current.ActivityName} completed successfully.");
                 await _store.WriteActivityStateAsync(current);
                 return product;
         }
