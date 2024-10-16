@@ -2,24 +2,23 @@ using Microsoft.Azure.Functions.Worker;
 using Degreed.SafeTest;
 using System.Diagnostics;
 using static Activities.BaseActivities;
-using Models;
-using DurableTask.Core.Exceptions;
-using Activities;
-using System.Security.Cryptography.X509Certificates;
 
-//[DebuggerStepThrough]
+// TODO: Refactor this class to be non-static and deterministic:
+/* NOTE: These test activities differ only in the calls that are made. */
+/* Because each activity is of the form Action(Product, Product) */
+/* it is possible to refactor this class into a non-static class */
+/* using a deterministic constructor to inject the activity name */
+/* and the function delegate: such a class would need to be totally */ 
+/* deterministic and thread safe. */
 public static class TestActivities
 {
-    
-
-
+    [DebuggerStepperBoundary]
     [Function(nameof(ActivityAlpha))]
     public static async Task<Product> ActivityAlpha(
         [ActivityTrigger] Product product,
         FunctionContext context
     )
     {
-        
         try
         {
             product = await InjectEmulations(product);
@@ -27,12 +26,20 @@ public static class TestActivities
             {
                 throw new FlowManagerFatalException(product.Errors);
             }
-            // PRODUCT PROCESSING
-            if (product.LastState == ActivityState.Active)
+            if (product.LastState == ActivityState.Stalled)
+            { 
+                throw new FlowManagerRetryableException(product.Errors);
+            }
+            else if (product.LastState == ActivityState.Active)
             {
-            await Task.Delay(TimeSpan.FromSeconds(5));
-            // PRODUCT NOW PROCESSED.
-            product.LastState = ActivityState.Completed;
+                if (product.LastState == ActivityState.Active)
+                {
+                    // PRODUCT PROCESSING ///////////////////////////////////////////////////////////////////////
+                    await Task.Delay(TimeSpan.FromSeconds(5));
+                    // PRODUCT NOW PROCESSED. /////////////////////////////////////////////////////////////////
+                    product.LastState = ActivityState.Completed;
+                }
+                return product;
             }
             return product;
         }
@@ -44,9 +51,6 @@ public static class TestActivities
         }
         catch (FlowManagerRetryableException ex)
         {
-            // product.LastState = ActivityState.Stalled;
-            // product.Errors = ex.Message;
-            // return product;
             var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
             current.State = ActivityState.Stalled;
             current.AddReason(ex.Message);
@@ -55,6 +59,7 @@ public static class TestActivities
         }
     }
 
+    [DebuggerStepperBoundary]
     [Function(nameof(ActivityBravo))]
     public static async Task<Product> ActivityBravo(
         [ActivityTrigger] Product product,
@@ -63,58 +68,45 @@ public static class TestActivities
     {
         try
         {
-            if (product.LastState == ActivityState.PostStalled)
-            {
-                product.PopDisruption();
-                product.LastState = ActivityState.Active;
-            }
-            
             product = await InjectEmulations(product);
             if (product.LastState == ActivityState.Failed)
             {
                 throw new FlowManagerFatalException(product.Errors);
             }
             if (product.LastState == ActivityState.Stalled)
-            {   // a disruptino has been injected to 
+            {
                 throw new FlowManagerRetryableException(product.Errors);
             }
             else if (product.LastState == ActivityState.Active)
             {
-            // PRODUCT PROCESSING!
-            await Task.Delay(TimeSpan.FromSeconds(5));
-            // PRODUCT NOW PROCESSED.
-            product.LastState = ActivityState.Completed;
+                if (product.LastState == ActivityState.Active)
+                {
+                    // PRODUCT PROCESSING ///////////////////////////////////////////////////////////////////////
+                    await Task.Delay(TimeSpan.FromSeconds(5));
+                    // PRODUCT NOW PROCESSED. /////////////////////////////////////////////////////////////////
+                    product.LastState = ActivityState.Completed;
+                }
                 return product;
-            }
-            if (MatchesDisruption(product.NextDisruption, Disruption.Stall))
-            {
-                throw new FlowManagerRetryableException(product.Errors);
-            }
-            else if (product.LastState == ActivityState.Stalled)
-            {
-                throw new FlowManagerRetryableException(product.Errors);
             }
             return product;
         }
         catch (FlowManagerFatalException ex)
-        {
+        { // this will be thrown by the suborchestrator
             product.LastState = ActivityState.Failed;
             product.Errors = ex.Message;
             return product;
         }
         catch (FlowManagerRetryableException ex)
-        {
+        { // this will bubble up to the sub-orchestrator for auto retry
             var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
-            current.State = ActivityState.PostStalled;
+            current.State = ActivityState.Stalled;
             current.AddReason(ex.Message);
-            current.AddTrace("Activity Bravo throws retryable exception");
             await _store.WriteActivityStateAsync(current);
             throw;
-            //product.LastState = ActivityState.PostStalled;
-            //return product;
         }
     }
 
+    [DebuggerStepperBoundary]
     [Function(nameof(ActivityCharlie))]
     public static async Task<Product> ActivityCharlie(
         [ActivityTrigger] Product product,
@@ -128,12 +120,20 @@ public static class TestActivities
             {
                 throw new FlowManagerFatalException(product.Errors);
             }
-            // PRODUCT PROCESSING
-            if (product.LastState == ActivityState.Active)
+            if (product.LastState == ActivityState.Stalled)
             {
-            await Task.Delay(TimeSpan.FromSeconds(5));
-            // PRODUCT NOW PROCESSED.
-            product.LastState = ActivityState.Completed;
+                throw new FlowManagerRetryableException(product.Errors);
+            }
+            else if (product.LastState == ActivityState.Active)
+            {
+                if (product.LastState == ActivityState.Active)
+                {
+                    // PRODUCT PROCESSING ///////////////////////////////////////////////////////////////////////
+                    await Task.Delay(TimeSpan.FromSeconds(5));
+                    /// PRODUCT NOW PROCESSED. /////////////////////////////////////////////////////////////////
+                    product.LastState = ActivityState.Completed;
+                }
+                return product;
             }
             return product;
         }

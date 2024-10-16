@@ -51,8 +51,8 @@ namespace Degreed.SafeTest
         [JsonPropertyName("SequenceNumber")]
         public int SequenceNumber { get; set; }
 
-        [JsonPropertyName("Count")]
-        public int Count { get; set; } = 0;
+        [JsonPropertyName("RetryCount")]
+        public int RetryCount { get; set; } = 0;
 
         [JsonPropertyName("Reason")]
         public string Reason { get; set; } = "";
@@ -90,7 +90,7 @@ namespace Degreed.SafeTest
         /// </summary>
         /// <param name="record"></param>
         /// <param name="product"></param>
-        public static void SyncRecordAndProduct(this ActivityRecord record, Product product)
+        public static void TimestampRecord_UpdateProductStateHistory(this ActivityRecord record, Product product)
         {
             record.MarkEndTime();
             record.SequenceNumber++;
