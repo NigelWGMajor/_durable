@@ -70,7 +70,8 @@ public class DataStore : IDataStore
                     UniqueKey = keyId,
                     State = ActivityState.unknown
                 };
-            return JsonSerializer.Deserialize<ActivityRecord>(json);
+            return JsonSerializer.Deserialize<ActivityRecord>(json) 
+               ?? new ActivityRecord();
         }
         catch (Exception ex)
         {

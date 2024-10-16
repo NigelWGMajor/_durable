@@ -7,51 +7,41 @@ using static TestActivities;
 
 namespace Orchestrations;
 
-public static class SubOrchestrationBravo                                   // rename this and the file to match the orchestration name
+public static class SubOrchestrationBravo // rename this and the file to match the orchestration name
 {
     // constants to tune retry policy:
     private const bool longRunning = false;
     private const bool highMemory = false;
     private const bool highDataOrFile = false;
-    private static string _operation_name_ = nameof(ActivityBravo);         // rename this to match the activity name
+    private static string _operation_name_ = nameof(ActivityBravo); // rename this to match the activity name
     private const string _orchestration_name_ = nameof(OrchestrationBravo); // rename this appropriately
 
     [Function(_orchestration_name_)]
-    public static async Task<Product> OrchestrationBravo(                   // Rename this function to match the operation name
+    public static async Task<Product> OrchestrationBravo( // Rename this function to match the operation name
         [OrchestrationTrigger] TaskOrchestrationContext context
     )
     {
         ILogger logger = context.CreateReplaySafeLogger(_orchestration_name_);
-        Product product; // = new Product();
-
-//        try
-  //      {
-            product = context.GetInput<Product>() ?? new Product();
-            product.ActivityName = _operation_name_;
-            product.InstanceId = context.InstanceId;
-
-        //product.Payload.Id = System.Diagnostics.Process.GetCurrentProcess().Id;
-
+        Product product = context.GetInput<Product>() ?? new Product();
+        product.ActivityName = _operation_name_;
+        product.InstanceId = context.InstanceId;
         product = await context.CallActivityAsync<Product>(
             nameof(PreProcessAsync),
             product,
-            GetOptions(isDisrupted: product.IsDisrupted).WithInstanceId($"{context.InstanceId})-pre")
+            GetOptions(isDisrupted: product.IsDisrupted)
+                .WithInstanceId($"{context.InstanceId})-pre")
         );
         if (product.LastState == ActivityState.Deferred)
-            {
-                await context.CreateTimer(Settings.WaitTime, CancellationToken.None);
-                product.LastState = ActivityState.unknown;
-                logger.LogInformation("*** Deferred timer released ***"); //!
-                context.ContinueAsNew(product);
-                return product;
-            }
+        {
+            await context.CreateTimer(Settings.WaitTime, CancellationToken.None);
+            product.LastState = ActivityState.unknown;
+            logger.LogInformation("*** Deferred timer released ***"); //!
+            context.ContinueAsNew(product);
+            return product;
+        }
         else if (product.LastState == ActivityState.Redundant)
         {
             return product;
-        }
-        else if (product.LastState == ActivityState.PostStalled)
-        {   // force the framework to retry
-            throw new FlowManagerRetryableException(product.Errors);
         }
         else if (product.LastState != ActivityState.Active)
         {
@@ -61,7 +51,7 @@ public static class SubOrchestrationBravo                                   // r
         if (
             product.LastState != ActivityState.Redundant && product.ActivityName == _operation_name_
         )
-        {   // right here is where we are either retrying or starting the activity
+        { // right here is where we are either retrying or starting the activity
             product = await context.CallActivityAsync<Product>(
                 _operation_name_,
                 product,
@@ -71,20 +61,12 @@ public static class SubOrchestrationBravo                                   // r
             product = await context.CallActivityAsync<Product>(
                 nameof(PostProcessAsync),
                 product,
-                GetOptions(isDisrupted: product.IsDisrupted).WithInstanceId($"{context.InstanceId})-post")
+                GetOptions(isDisrupted: product.IsDisrupted)
+                    .WithInstanceId($"{context.InstanceId})-post")
             );
             if (product.LastState == ActivityState.Failed)
             {
                 throw new FlowManagerFatalException(product.Errors);
-            }
-            else if (product.LastState == ActivityState.Stalled)
-            {
-                 /// <summary>
-                 ///  set up for a retry without executing again
-                 /// </summary>
-                 product.LastState = ActivityState.PostStalled;
-                 context.ContinueAsNew(product);
-                 return product;
             }
             return product;
         }
@@ -92,10 +74,5 @@ public static class SubOrchestrationBravo                                   // r
         {
             return product;
         }
-//    }
-  //      catch (Exception ex)
-    //    {
-      //      throw;
-        //} 
     }
 }

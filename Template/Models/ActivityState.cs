@@ -12,8 +12,6 @@ public enum ActivityState
     Stalled,     // activity had non-fatal error, expecting retry or orchestrator failure
     Failed,      // unrecoverable error to be passed to the orchestrator
     Successful,  // ultimately complete
-    Unsuccessful, // ultimately failed
-    PostStalled 
-    
-        // Entire chain of activities is completed or failed
+    Unsuccessful // ultimately failed
+    // The entire operation i.e. chain of activities is ultimately Successful or Unsuccessful
 }

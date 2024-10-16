@@ -1,7 +1,7 @@
 use [master]
 go 
 
--- -- -- Alter #RebuildDatabase to 1 to drop and recreate the databse, or 0 to keep the existing.
+-- -- -- Alter #RebuildDatabase to 1 to drop and recreate the database, or 0 to keep the existing.
 declare 
   @RebuildDatabase bit = 0;
 
@@ -180,7 +180,7 @@ create table [rpt].[OperationFlowStates](
     [TimeUpdated] [datetime2](7) NULL,
     [ActivityState] [tinyint] NULL,
     [ActivityStateName] [nvarchar](100) NULL,
-    [Count] [int] NULL,
+    [RetryCount] [int] NULL,
     [Trace] [nvarchar](max) NULL,
     [Reason] [nvarchar](max) NULL,
     [ProcessId] [nvarchar](100) NULL,
@@ -210,7 +210,7 @@ create table [rpt].[OperationFlowStateHistory](
     [TimeUpdated] [datetime2](7) null,
     [ActivityState] [tinyint] null,
     [ActivityStateName] [nvarchar](100) null,
-    [Count] [int] null,
+    [RetryCount] [int] null,
     [Trace] [nvarchar](max) null,
     [Reason] [nvarchar](max) null,
     [ProcessId] [nvarchar](100) null,
@@ -241,7 +241,7 @@ select (
             Trace,
             Reason,
             ProcessId,
-            [Count],
+            [RetryCount],
             SequenceNumber
         from rpt.OperationFlowStates
         where UniqueKey = @UniqueKey for json path,
@@ -264,7 +264,7 @@ merge rpt.OperationFlowStates as target using (
         json_value(@json, '$.Trace') as Trace,
         json_value(@json, '$.Reason') as Reason,
         json_value(@json, '$.ProcessId') as ProcessId,
-        json_value(@json, '$.Count') as [Count],
+        json_value(@json, '$.RetryCount') as [RetryCount],
         json_value(@json, '$.SequenceNumber') as SequenceNumber,
         @Timestamp as TimeUpdated
 ) as source on (target.UniqueKey = source.UniqueKey)
@@ -279,7 +279,7 @@ set OperationName = source.OperationName,
     Reason = source.Reason,
     ProcessId = source.ProcessId,
     SequenceNumber = source.SequenceNumber,
-    [Count] = source.[Count],
+    [RetryCount] = source.[RetryCount],
     TimeUpdated = source.TimeUpdated -- we only save the start time in when the record is first made.
     when not matched then
 insert (
@@ -295,7 +295,7 @@ insert (
         ProcessId,
         SequenceNumber,
         TimeUpdated,
-        [Count]
+        [RetryCount]
     )
 values (
         source.UniqueKey,
@@ -310,7 +310,7 @@ values (
         source.ProcessId,
         source.SequenceNumber,
         source.TimeUpdated,
-        source.[Count]
+        source.[RetryCount]
     );
 ;
 insert into rpt.OperationFlowStateHistory (
@@ -324,7 +324,7 @@ insert into rpt.OperationFlowStateHistory (
         Trace,
         Reason,
         ProcessId,
-        [Count],
+        [RetryCount],
         SequenceNumber,
         TimeUpdated
     )
@@ -339,7 +339,7 @@ values (
         json_value(@json, '$.Trace'),
         json_value(@json, '$.Reason'),
         json_value(@json, '$.ProcessId'),
-        json_value(@json, '$.Count'),
+        json_value(@json, '$.RetryCount'),
         json_value(@json, '$.SequenceNumber'),
         cast(@Timestamp as DateTime2)
     )
