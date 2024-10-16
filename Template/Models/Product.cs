@@ -35,7 +35,7 @@ public class Product
     public string NextDisruption { get; set; } = "";
     public static Product FromContext(TaskOrchestrationContext context)
     {
-        return context.GetInput<Product>();
+        return context.GetInput<Product>() ?? new Product();
     }
     /// <summary>
     /// Pops the next disruption (or an empty string) off the disruptions stack

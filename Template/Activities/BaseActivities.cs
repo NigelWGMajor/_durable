@@ -99,7 +99,7 @@ public static class BaseActivities
         return new TaskOptions(TaskRetryOptions.FromRetryPolicy(policy));
     }
 
-    internal static DataStore? _store;
+    internal static DataStore _store;
 
     [DebuggerStepThrough]
     static BaseActivities()
