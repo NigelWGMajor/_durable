@@ -10,15 +10,19 @@ namespace Degreed.SafeTest
         [JsonPropertyName("UniqueKey")]
         public string UniqueKey { get; set; } = "";
 
+        [JsonPropertyName("OperationName")]
+        public string OperationName { get; set; } = "";
+
         [JsonPropertyName("ActivityName")]
         public string ActivityName { get; set; } = "";
 
         [JsonPropertyName("ActivityStateName")]
-        public string ActivityStateName 
+        public string ActivityStateName
         {
             get => $"{State}";
-            set { State = (ActivityState)System.Enum.Parse( typeof(ActivityState), value); }
+            set { State = (ActivityState)System.Enum.Parse(typeof(ActivityState), value); }
         }
+
         [JsonIgnore]
         public ActivityState State { get; set; } = ActivityState.unknown;
 
@@ -38,8 +42,8 @@ namespace Degreed.SafeTest
         [JsonPropertyName("TimeUpdated")]
         public DateTime TimeUpdated { get; set; }
 
-        [JsonPropertyName("Notes")]
-        public string Notes { get; set; } = "";
+        [JsonPropertyName("Trace")]
+        public string Trace { get; set; } = "";
 
         [JsonPropertyName("ProcessId")]
         public string ProcessId { get; set; } = "";
@@ -49,10 +53,15 @@ namespace Degreed.SafeTest
 
         [JsonPropertyName("Count")]
         public int Count { get; set; } = 0;
+
+        [JsonPropertyName("Reason")]
+        public string Reason { get; set; } = "";
     }
 
+    [DebuggerStepThrough]
     public static class ActivityRecordExtender
     {
+        private static readonly string _eol_ = "\r\n";
         public static void MarkStartTime(this ActivityRecord record)
         {
             record.TimeStarted = DateTime.UtcNow;
@@ -61,6 +70,19 @@ namespace Degreed.SafeTest
         public static void MarkEndTime(this ActivityRecord record)
         {
             record.TimeEnded = DateTime.UtcNow;
+        }
+
+        public static void AddTrace(this ActivityRecord record, string message)
+        {
+            record.Trace = $"{message}{_eol_}{record.Trace}";
+        }
+
+        public static void AddReason(this ActivityRecord record, string message)
+        {
+            if (record.Reason.Length > 0)
+                record.Reason = $"{record.Reason}{record.SequenceNumber}:{message}{_eol_}";
+            else
+                record.Reason = $"{record.SequenceNumber}:{message}{_eol_}";
         }
 
         /// <summary>

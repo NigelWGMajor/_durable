@@ -4,6 +4,7 @@ using Degreed.SafeTest;
 using Microsoft.DurableTask;
 using Microsoft.Identity.Client;
 using Microsoft.Net.Http.Headers;
+using Models;
 
 [DebuggerStepThrough]
 public class Product
@@ -12,25 +13,26 @@ public class Product
     {
         Payload = new Payload();
     }
+    [JsonPropertyName("operationName")]
+    public string OperationName { get; set; } = "";
     [JsonPropertyName("activityName")]
     public string ActivityName { get; set; } = "";
     [JsonPropertyName("payLoad")]
     public Payload Payload { get; set; }
-        [JsonPropertyName("lastState")]
+    [JsonPropertyName("lastState")]
     public ActivityState LastState { get; set; } = ActivityState.unknown;
-        [JsonPropertyName("activityHistory")]
+    [JsonPropertyName("activityHistory")]
     public List<ActivityRecord> ActivityHistory { get; set; } = new List<ActivityRecord>();
-
-[JsonIgnore()]
-    public bool MayContinue => LastState != ActivityState.Redundant;
-        [JsonPropertyName("errors")]
-    public List<string> Errors = new List<string>();
-        [JsonPropertyName("instanceId")]
-    public string InstanceId { get;  set; }
-        [JsonPropertyName("disruptions")]
+    [JsonIgnore()]
+    public bool IsDisrupted => Disruptions.Length > 0 || NextDisruption.Length > 0; 
+    [JsonPropertyName("errors")]
+    public string Errors { get; set; }  = "";
+    [JsonPropertyName("instanceId")]
+    public string InstanceId { get; set; } = "";
+    [JsonPropertyName("disruptions")]
     public string[] Disruptions { get; set; } = [];
-        [JsonPropertyName("nextDisruption")]
-    public string NextDisruption { get; private set; } 
+    [JsonPropertyName("nextDisruption")]
+    public string NextDisruption { get; set; } = "";
     public static Product FromContext(TaskOrchestrationContext context)
     {
         return context.GetInput<Product>();
@@ -47,7 +49,14 @@ public class Product
             NextDisruption = "";
         else
         {
-            NextDisruption = Disruptions[0];
+            if (Disruptions[0].Length == 0)
+            {
+                NextDisruption = Disruption.Pass.ToString();
+            }
+            else
+            {
+                NextDisruption = Disruptions[0];
+            }
             string[] temp = new string[Disruptions.Length - 1];
             string result = Disruptions[0];
             for (int i = 0; i < temp.Length; i++)

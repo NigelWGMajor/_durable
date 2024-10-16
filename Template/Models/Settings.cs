@@ -1,18 +1,21 @@
+using Microsoft.Identity.Client;
+
 namespace Models
 {
     public static class Settings
     {
         /// <summary>
-        /// How many times to retry when an activity times out
+        /// How many times to retry when activity times out 
         /// </summary>
-        /// <value></value>
         public static int StickCap { get; set; } = 2;
         /// <summary>
-        /// How often to delay an activity because resources are impacted
+        /// The longest time an activity os allowed to run
         /// </summary>
-        /// <value></value>
-        public static int ChokeCap { get; set; } = 5;
-        public static TimeSpan MaximumActivityTime { get; set; } = TimeSpan.FromHours(6);
-        public static TimeSpan ChokeTime { get; set; } = TimeSpan.FromMinutes(30);
+        public static TimeSpan MaximumActivityTime { get; set; } = TimeSpan.FromHours(12);
+        /// <summary>
+        /// How long to wait if metadata is off line
+        /// </summary>
+        public static TimeSpan WaitTime { get; set; } = TimeSpan.FromMinutes(2);
+        
     }
 }

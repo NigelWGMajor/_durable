@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+  sql-server:
+    #image: sql-hybrid
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    build: 
+      context: .
+      dockerfile: Dockerfile.sql
+      tags:
+        - "sql-hybrid"
+    environment:
+      SA_PASSWORD: Dock2Gently
+      ACCEPT_EULA: Y
+      MSSQL_PID: Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - type: bind
+        source: ./sql
+        target: /sql
+    container_name: sqlserver
