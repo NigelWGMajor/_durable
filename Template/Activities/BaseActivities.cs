@@ -16,6 +16,15 @@ namespace Activities;
 /// </summary>
 public static class BaseActivities
 {
+    // use to prevent timeout:
+    internal static TimeSpan _tiny_delay = TimeSpan.FromSeconds(10);
+    internal static TimeSpan _test_delay = TimeSpan.FromMinutes(1);
+
+    // used to induce timeout:
+    internal static TimeSpan _big_delay = TimeSpan.FromMinutes(2);
+    internal static TimeSpan _short_delay = TimeSpan.FromHours(1);
+    internal static TimeSpan _long_delay = TimeSpan.FromHours(12);
+
     /// <summary>
     /// The options generated for tuning retries are decided here based on some generic inputs.
     /// If the operation is Disrupted (i.e. emulated disruptions have been injected for testing)
@@ -151,18 +160,18 @@ public static class BaseActivities
                     // This is a new activity, so we should rotate any disruptions for this activity
                     product.PopDisruption();
                 }
-                else if (
-                    product.LastState == ActivityState.Active
-                    && MatchesDisruption(product.NextDisruption, Disruption.Stall)
-                )
-                {
-                    // When auto-retry is used (a Stall disruption) no product is returned so we need to ignore the
-                    // current disruption if it is a stall
-                    if (current.RetryCount == 1)
-                        product.PopDisruption();
-                }
+                // // //  else if (
+                // // //      product.LastState == ActivityState.Active
+                // // //      && MatchesDisruption(product.NextDisruption, Disruption.Stall)
+                // // //  )
+                // // //  {
+                // // //      // When auto-retry is used (a Stall disruption) no product is returned so we need to ignore the
+                // // //      // current disruption if it is a stall
+                // // //      if (current.RetryCount == 1)
+                // // //          product.PopDisruption();
+                // // //  }
                 if (MatchesDisruption(product.NextDisruption, Disruption.Wait))
-                {
+                {   // This emulates unavailable metadata so should occur here in the preprocessing loop. 
                     current.AddReason("Metadata store not available (emulated Wait).");
                     throw new FlowManagerRecoverableException(
                         "Pre:  Metadata store not available (emulated)."
@@ -253,14 +262,14 @@ public static class BaseActivities
                 // }
                 // else
                 // {
-                    // otherwise we should mark this instance as redundant
-                    product.LastState = ActivityState.Redundant;
-                    var threadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
-                    current.AddTrace($"Pre:  Re-entrant thread {threadId} rejected");
-                    await _store.WriteActivityStateAsync(current);
-                    return product;
-                // }
-                // break;
+                // otherwise we should mark this instance as redundant
+                product.LastState = ActivityState.Redundant;
+                var threadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
+                current.AddTrace($"Pre:  Re-entrant thread {threadId} rejected");
+                await _store.WriteActivityStateAsync(current);
+                return product;
+            // }
+            // break;
             case ActivityState.Stuck:
                 // this should never occur
                 current.AddTrace(
@@ -302,7 +311,7 @@ public static class BaseActivities
         return product;
     }
 
-   // [DebuggerStepperBoundary]
+    // [DebuggerStepperBoundary]
     [Function(nameof(PostProcessAsync))]
     public static async Task<Product> PostProcessAsync(
         [ActivityTrigger] Product product,
@@ -318,6 +327,14 @@ public static class BaseActivities
         current.TimestampRecord_UpdateProductStateHistory(product);
         switch (current.State)
         {
+            case ActivityState.Stuck:
+                // the product will never be returned.
+                // A non-zero RetryCount indicates that the activity has been thrown back to the framework to retry or fail.
+                current.RetryCount++;
+                current.AddTrace($"Post: Activity {current.ActivityName} stuck after {current.RetryCount} {(current.RetryCount == 1 ? "retry" : "retries")}.");
+                current.AddReason("Activity has exceeded maximum time.");
+                await _store.WriteActivityStateAsync(current);
+                throw new FlowManagerRecoverableException("Activity exceeded the time allowed.");
             case ActivityState.Stalled:
                 // the product will never be returned.
                 // A non-zero RetryCount indicates that the activity has been thrown back to the framework to retry or fail.
@@ -377,6 +394,15 @@ public static class BaseActivities
     [DebuggerStepThrough]
     internal async static Task<Product> InjectEmulations(Product product)
     {
+        var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
+        if (current.State == ActivityState.Stuck || current.State == ActivityState.Stalled)
+        { // Either of these will mean that the product was never returned,
+            // because an exception was thrown, so the last disruption is still stacked.
+            if (current.RetryCount == 0)
+            {
+                product.PopDisruption();
+            }
+        }
         if (product.IsDisrupted)
         {
             if (MatchesDisruption(product.NextDisruption, Disruption.Pass))
@@ -392,7 +418,7 @@ public static class BaseActivities
                 product.LastState = ActivityState.Stalled;
                 product.Errors = "Action: Stalled (emulated).";
                 // this is needed because otherwise stall will be infinite....
-                product.PopDisruption();
+                //product.PopDisruption();
             }
             else if (MatchesDisruption(product.NextDisruption, Disruption.Crash))
             {
@@ -406,9 +432,10 @@ public static class BaseActivities
             }
             else if (MatchesDisruption(product.NextDisruption, Disruption.Stick))
             {
-                product.Errors = "Action: Stuck (emulated).";
                 product.LastState = ActivityState.Stuck;
-                // this should delay enough to cause a timeout
+                product.Errors = "Action: Stuck (emulated).";
+                // await Task.Delay(_test_delay * 1.1);
+              //  product.PopDisruption();
             }
         }
         return product;

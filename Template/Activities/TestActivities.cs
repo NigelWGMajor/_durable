@@ -13,14 +13,7 @@ using System.Threading.Tasks;
 /* deterministic and thread safe. */
 public static class TestActivities
 {
-    // use to prevent timeout:
-    static TimeSpan _tiny_delay = TimeSpan.FromSeconds(10);
-    static TimeSpan _test_delay = TimeSpan.FromMinutes(1);
-
-    // used to induce timeout:
-    static TimeSpan _big_delay = TimeSpan.FromMinutes(2);
-    static TimeSpan _short_delay = TimeSpan.FromHours(1);
-    static TimeSpan _long_delay = TimeSpan.FromHours(12);
+   
 
     // These are representative of the activities that do the actual processing.
     // They are not deterministic because they are async and have side effects.
@@ -33,14 +26,7 @@ public static class TestActivities
     private static async Task<Product> ExecuteAlpha(Product product)
     {
         // PRODUCT PROCESSING //////////////////////////////////////////////////////////////////
-        if (product.LastState == ActivityState.Stuck)
-        {
-            await Task.Delay(_big_delay);
-        }
-        else
-        {
-            await Task.Delay(_tiny_delay);
-        }
+        await Task.Delay(_tiny_delay);
         product.Output = "Alpha was here.";
         product.LastState = ActivityState.Completed;
         // PRODUCT NOW PROCESSED. //////////////////////////////////////////////////////////////
@@ -76,6 +62,7 @@ public static class TestActivities
     {
         try
         {
+            bool fakeStuck = false;
             product = await InjectEmulations(product);
             if (product.LastState == ActivityState.Failed)
             {
@@ -87,6 +74,10 @@ public static class TestActivities
             }
             if (product.LastState == ActivityState.Stuck)
             {
+                if (MatchesDisruption(product.NextDisruption, Models.Disruption.Stick))
+                {
+                    fakeStuck = true;
+                }
                 product.LastState = ActivityState.Active;
             }
             if (product.LastState == ActivityState.Active)
@@ -94,8 +85,9 @@ public static class TestActivities
                 var executionTask = ExecuteAlpha(product); // points to private function above
                 var timeoutTask = Task.Delay(_test_delay); // set to appropriate timeout
                 var effectiveTask = await Task.WhenAny(executionTask, timeoutTask);
-                if (effectiveTask == timeoutTask)
+                if (effectiveTask == timeoutTask || fakeStuck)
                 {
+                    product.LastState = ActivityState.Stuck;
                     throw new FlowManagerRecoverableException(
                         "Activity exceeded the time allowed."
                     );
@@ -113,7 +105,15 @@ public static class TestActivities
         catch (FlowManagerRecoverableException ex)
         {
             var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
-            current.State = ActivityState.Stalled;
+            if (product.LastState == ActivityState.Stuck)
+            {
+                current.State = ActivityState.Stuck;
+            }
+            else
+            {
+                current.State = ActivityState.Stalled;
+            }
+            //current.State = ActivityState.Stalled;
             current.AddReason(ex.Message);
             await _store.WriteActivityStateAsync(current);
             throw;
@@ -146,13 +146,20 @@ public static class TestActivities
                     product.LastState = ActivityState.Active;
                 }
             }
-            if (product.LastState == ActivityState.Stuck)
+            else if (product.LastState == ActivityState.Stuck)
             {
-                product.LastState = ActivityState.Active;
+                if (current.RetryCount == 0)
+                {   // a stall was injected.
+                    throw new FlowManagerRecoverableException(product.Errors);
+                }
+                else
+                {   // this needs to be be retried because it was previously stalled.
+                    product.LastState = ActivityState.Active;
+                }
             }
             if (product.LastState == ActivityState.Active)
             {
-                var executionTask = ExecuteAlpha(product); // points to private function above
+                var executionTask = ExecuteBravo(product); // points to private function above
                 var timeoutTask = Task.Delay(_big_delay); // set to appropriate timeout
                 var effectiveTask = await Task.WhenAny(executionTask, timeoutTask);
                 if (effectiveTask == timeoutTask)
@@ -161,7 +168,7 @@ public static class TestActivities
                         "Activity exceeded the time allowed."
                     );
                 }
-                product = await ExecuteAlpha(product);
+                product = await ExecuteBravo(product);
             }
             return product;
         }
@@ -207,7 +214,7 @@ public static class TestActivities
             }
             if (product.LastState == ActivityState.Active)
             {
-                var executionTask = ExecuteAlpha(product); // points to private function above
+                var executionTask = ExecuteCharlie(product); // points to private function above
                 var timeoutTask = Task.Delay(_big_delay); // set to appropriate timeout
                 var effectiveTask = await Task.WhenAny(executionTask, timeoutTask);
                 if (effectiveTask == timeoutTask)
@@ -216,7 +223,7 @@ public static class TestActivities
                         "Activity exceeded the time allowed."
                     );
                 }
-                product = await ExecuteAlpha(product);
+                product = await ExecuteCharlie(product);
             }
             return product;
         }
