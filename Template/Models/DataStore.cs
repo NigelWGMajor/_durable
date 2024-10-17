@@ -75,7 +75,7 @@ public class DataStore : IDataStore
         }
         catch (Exception ex)
         {
-            throw new FlowManagerRetryableException("Metadata store: Unable to read current ActivityRecord", ex);
+            throw new FlowManagerRecoverableException("Metadata store: Unable to read current ActivityRecord", ex);
         }
     }
 
@@ -115,7 +115,7 @@ public class DataStore : IDataStore
         }
         catch (Exception ex)
         {
-            throw new FlowManagerRetryableException("Metadata store: Unable to write current ActivityRecord", ex);
+            throw new FlowManagerRecoverableException("Metadata store: Unable to write current ActivityRecord", ex);
         }
     }
 }

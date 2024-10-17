@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json.Serialization;
 using Degreed.SafeTest;
+using Microsoft.Azure.Functions.Worker.Extensions.Abstractions;
 using Microsoft.DurableTask;
 using Microsoft.Identity.Client;
 using Microsoft.Net.Http.Headers;
@@ -33,6 +34,8 @@ public class Product
     public string[] Disruptions { get; set; } = [];
     [JsonPropertyName("nextDisruption")]
     public string NextDisruption { get; set; } = "";
+    [JsonPropertyName("output")]
+    public string Output { get; set; } = "";
     public static Product FromContext(TaskOrchestrationContext context)
     {
         return context == null ? 
