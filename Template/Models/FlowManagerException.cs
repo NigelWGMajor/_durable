@@ -1,16 +1,16 @@
 using System;
 using System.Diagnostics;
 [DebuggerStepThrough]
-public class FlowManagerRetryableException : Exception
+public class FlowManagerRecoverableException : Exception
 {
     // Default constructor
-    public FlowManagerRetryableException() : base() { }
+    public FlowManagerRecoverableException() : base() { }
 
     // Constructor that accepts a custom message
-    public FlowManagerRetryableException(string message) : base(message) { }
+    public FlowManagerRecoverableException(string message) : base(message) { }
 
     // Constructor that accepts a custom message and an inner exception
-    public FlowManagerRetryableException(string message, Exception innerException) : base(message, innerException) { }
+    public FlowManagerRecoverableException(string message, Exception innerException) : base(message, innerException) { }
 }
 
 public class FlowManagerFatalException : Exception

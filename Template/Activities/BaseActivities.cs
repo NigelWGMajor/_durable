@@ -16,6 +16,15 @@ namespace Activities;
 /// </summary>
 public static class BaseActivities
 {
+    // use to prevent timeout:
+    internal static TimeSpan _tiny_delay = TimeSpan.FromSeconds(10);
+    internal static TimeSpan _test_delay = TimeSpan.FromMinutes(1);
+
+    // used to induce timeout:
+    internal static TimeSpan _big_delay = TimeSpan.FromMinutes(2);
+    internal static TimeSpan _short_delay = TimeSpan.FromHours(1);
+    internal static TimeSpan _long_delay = TimeSpan.FromHours(12);
+
     /// <summary>
     /// The options generated for tuning retries are decided here based on some generic inputs.
     /// If the operation is Disrupted (i.e. emulated disruptions have been injected for testing)
@@ -28,7 +37,7 @@ public static class BaseActivities
     /// <param name="highDataOrFile"></param>
     /// <param name="isDisrupted"></param>
     /// <returns></returns>
-    //[DebuggerStepThrough]
+    [DebuggerStepThrough]
     internal static TaskOptions GetOptions(
         bool longRunning = false,
         bool highMemory = false,
@@ -45,14 +54,14 @@ public static class BaseActivities
         if (isDisrupted)
         {
             // reduced for emulation and testing
-            numberOfRetries = 3;
-            initialDelay = TimeSpan.FromMinutes(2);
+            numberOfRetries = 5;
+            initialDelay = TimeSpan.FromMinutes(1);
             backoffCoefficient = 1.0;
             maxDelay = TimeSpan.FromHours(3);
-            timeout = TimeSpan.FromMinutes(5);
-            Settings.MaximumActivityTime = TimeSpan.FromMinutes(5);
-            Settings.StickCap = 1;
-            Settings.WaitTime = TimeSpan.FromMinutes(2);
+            timeout = TimeSpan.FromHours(1);
+            Settings.MaximumActivityTime = TimeSpan.FromMinutes(20);
+            Settings.StickCap = 5;
+            Settings.WaitTime = TimeSpan.FromMinutes(1.5);
         }
         else
         {
@@ -112,7 +121,7 @@ public static class BaseActivities
         if (temp != null)
             _store = new DataStore(temp);
         else
-            throw new FlowManagerRetryableException("MetadataStore connection not provided");
+            throw new FlowManagerRecoverableException("MetadataStore connection not provided");
     }
 
     [DebuggerStepThrough]
@@ -151,26 +160,26 @@ public static class BaseActivities
                     // This is a new activity, so we should rotate any disruptions for this activity
                     product.PopDisruption();
                 }
-                else if (
-                    product.LastState == ActivityState.Active
-                    && MatchesDisruption(product.NextDisruption, Disruption.Stall)
-                )
-                {
-                    // When auto-retry is used (a Stall disruption) no product is returned so we need to ignore the
-                    // current disruption if it is a stall
-                    if (current.RetryCount == 1)
-                        product.PopDisruption();
-                }
+                // // //  else if (
+                // // //      product.LastState == ActivityState.Active
+                // // //      && MatchesDisruption(product.NextDisruption, Disruption.Stall)
+                // // //  )
+                // // //  {
+                // // //      // When auto-retry is used (a Stall disruption) no product is returned so we need to ignore the
+                // // //      // current disruption if it is a stall
+                // // //      if (current.RetryCount == 1)
+                // // //          product.PopDisruption();
+                // // //  }
                 if (MatchesDisruption(product.NextDisruption, Disruption.Wait))
-                {
+                {   // This emulates unavailable metadata so should occur here in the preprocessing loop. 
                     current.AddReason("Metadata store not available (emulated Wait).");
-                    throw new FlowManagerRetryableException(
+                    throw new FlowManagerRecoverableException(
                         "Pre:  Metadata store not available (emulated)."
                     );
                 }
             }
         }
-        catch (FlowManagerRetryableException ex)
+        catch (FlowManagerRecoverableException ex)
         {
             // This catches a metadata failure - whether emulated or resulting from the first read.
             // We assume there is no metadata, so any status will need to be communicated via the product.
@@ -243,23 +252,24 @@ public static class BaseActivities
                 // the item is blocked from this execution thread. It will be black-iced through the orchestrations.
                 return product;
             case ActivityState.Active:
+                ;
                 // another instance is already active
                 // if we have exceeded the maximum activity time, we should regard this as stuck
-                if (NowPastLimit(current.TimeStarted, Settings.MaximumActivityTime))
-                {
-                    current.State = ActivityState.Stuck;
-                    current.AddTrace($"Pre:  Stuck because maximum run time exceeded");
-                }
-                else
-                {
-                    // otherwise we should mark this instance as redundant
-                    product.LastState = ActivityState.Redundant;
-                    var threadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
-                    current.AddTrace($"Pre:  Re-entrant thread {threadId} rejected");
-                    await _store.WriteActivityStateAsync(current);
-                    return product;
-                }
-                break;
+                // if (NowPastLimit(current.TimeStarted, Settings.MaximumActivityTime))
+                // {
+                //     current.State = ActivityState.Stuck;
+                //     current.AddTrace($"Pre:  Stuck because maximum run time exceeded");
+                // }
+                // else
+                // {
+                // otherwise we should mark this instance as redundant
+                product.LastState = ActivityState.Redundant;
+                var threadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
+                current.AddTrace($"Pre:  Re-entrant thread {threadId} rejected");
+                await _store.WriteActivityStateAsync(current);
+                return product;
+            // }
+            // break;
             case ActivityState.Stuck:
                 // this should never occur
                 current.AddTrace(
@@ -301,7 +311,7 @@ public static class BaseActivities
         return product;
     }
 
-   // [DebuggerStepperBoundary]
+    // [DebuggerStepperBoundary]
     [Function(nameof(PostProcessAsync))]
     public static async Task<Product> PostProcessAsync(
         [ActivityTrigger] Product product,
@@ -317,6 +327,14 @@ public static class BaseActivities
         current.TimestampRecord_UpdateProductStateHistory(product);
         switch (current.State)
         {
+            case ActivityState.Stuck:
+                // the product will never be returned.
+                // A non-zero RetryCount indicates that the activity has been thrown back to the framework to retry or fail.
+                current.RetryCount++;
+                current.AddTrace($"Post: Activity {current.ActivityName} stuck after {current.RetryCount} {(current.RetryCount == 1 ? "retry" : "retries")}.");
+                current.AddReason("Activity has exceeded maximum time.");
+                await _store.WriteActivityStateAsync(current);
+                throw new FlowManagerRecoverableException("Activity exceeded the time allowed.");
             case ActivityState.Stalled:
                 // the product will never be returned.
                 // A non-zero RetryCount indicates that the activity has been thrown back to the framework to retry or fail.
@@ -326,7 +344,7 @@ public static class BaseActivities
                 current.AddTrace($"Action {current.ActivityName} stalled with non-fatal error.");
                 current.TimestampRecord_UpdateProductStateHistory(product);
                 await _store.WriteActivityStateAsync(current);
-                throw new FlowManagerRetryableException(product.Errors);
+                throw new FlowManagerRecoverableException(product.Errors);
             case ActivityState.Failed: // Will be thrown up to orchestrator.
                 current.AddTrace(
                     $"Action {current.ActivityName} failed with fatal error after {current.RetryCount} {(current.RetryCount == 1 ? "retry" : "retries")}."
@@ -373,9 +391,18 @@ public static class BaseActivities
         return product;
     }
 
-    //[DebuggerStepThrough]
+    [DebuggerStepThrough]
     internal async static Task<Product> InjectEmulations(Product product)
     {
+        var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
+        if (current.State == ActivityState.Stuck || current.State == ActivityState.Stalled)
+        { // Either of these will mean that the product was never returned,
+            // because an exception was thrown, so the last disruption is still stacked.
+            if (current.RetryCount == 0)
+            {
+                product.PopDisruption();
+            }
+        }
         if (product.IsDisrupted)
         {
             if (MatchesDisruption(product.NextDisruption, Disruption.Pass))
@@ -389,9 +416,9 @@ public static class BaseActivities
             else if (MatchesDisruption(product.NextDisruption, Disruption.Stall))
             {
                 product.LastState = ActivityState.Stalled;
-                product.Errors = "Activity: Stalled (emulated).";
+                product.Errors = "Action: Stalled (emulated).";
                 // this is needed because otherwise stall will be infinite....
-                product.PopDisruption();
+                //product.PopDisruption();
             }
             else if (MatchesDisruption(product.NextDisruption, Disruption.Crash))
             {
@@ -399,89 +426,18 @@ public static class BaseActivities
             }
             else if (MatchesDisruption(product.NextDisruption, Disruption.Drag))
             {
-                product.Errors = "Activity: Drag at half maximum time (emulated).";
+                product.Errors = "Action: Dragging (emulated).";
                 await Task.Delay(Settings.MaximumActivityTime / 2.0);
                 // This should be allowed to complete successfully!
             }
             else if (MatchesDisruption(product.NextDisruption, Disruption.Stick))
             {
-                product.Errors = "Activity: Stick at double maximum time (emulated).";
-                await Task.Delay(Settings.MaximumActivityTime * 2);
-                // This should be abandoned and a new operation take over
+                product.LastState = ActivityState.Stuck;
+                product.Errors = "Action: Stuck (emulated).";
+                // await Task.Delay(_test_delay * 1.1);
+              //  product.PopDisruption();
             }
         }
-        return product;
-    }
-
-    [Function(nameof(PostProcessAsync))]
-    public static async Task<Product> PostProcessAsync(
-        [ActivityTrigger] Product product,
-        FunctionContext context
-    )
-    {
-        string iid = context.InvocationId.Substring(0, 8);
-        var uniqueKey = product.Payload.UniqueKey;
-        var current = await _store.ReadActivityStateAsync(uniqueKey);
-        current.MarkEndTime();
-        current.State = product.LastState;
-        current.SyncRecordAndProduct(product);
-        switch (current.State)
-        {
-           case ActivityState.Stalled:
-                throw new FlowManagerRetryableException("Thrown in postprocess");
-                current.AddTrace($"Activity {current.ActivityName} stalled with non-fatal error.");
-                product.LastState = ActivityState.Stalled;
-                current.SyncRecordAndProduct(product);
-                    current.State = ActivityState.Stalled; // so that it will retry.
-                    await _store.WriteActivityStateAsync(current);
-                    return product;
-                
-                // otherwise set up to retry
-            case ActivityState.PostStalled: // defer to prevailing Durable Function retry policy
-                current.AddTrace($"Activity {current.ActivityName} stalled with non-fatal error.");
-                current.AddReason(product.Errors);
-                current.Count++;
-                current.SyncRecordAndProduct(product);
-                current.State = ActivityState.Ready; // so that it will retry.
-                await _store.WriteActivityStateAsync(current);
-                throw new FlowManagerRetryableException(
-                    $"Post: Retryable FlowManager Exception: {product.ActivityHistory}"
-                );
-            case ActivityState.Failed: // throw up to orchestrator.
-                current.AddTrace($"Activity {current.ActivityName} failed with fatal error.");
-                current.State = ActivityState.Unsuccessful;
-                await _store.WriteActivityStateAsync(current);
-                return product;
-            default:
-                current.AddTrace($"Post: Activity {current.ActivityName} completed successfully.");
-                await _store.WriteActivityStateAsync(current);
-                return product;
-        }
-    }
-
-    [Function(nameof(FinishAsync))]
-    public static async Task<Product> FinishAsync(
-        [ActivityTrigger] Product product,
-        FunctionContext context
-    )
-    {
-        var uniqueKey = product.Payload.UniqueKey;
-        string iid = context.InvocationId.Substring(0, 8);
-        var current = await _store.ReadActivityStateAsync(uniqueKey);
-        current.SyncRecordAndProduct(product);
-        current.MarkEndTime();
-        if (current.State == ActivityState.Completed)
-        {
-            current.State = ActivityState.Successful;
-            current.AddTrace("Final: Successfully completed");
-        }
-        else
-        {
-            current.State = ActivityState.Unsuccessful;
-            current.AddTrace("Final: Failed to complete");
-        }
-        await _store.WriteActivityStateAsync(current);
-        current.SyncRecordAndProduct(product);
         return product;
     }
 
