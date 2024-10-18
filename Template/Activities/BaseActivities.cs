@@ -307,7 +307,7 @@ public static class BaseActivities
                 current.AddTrace(
                     $"{current.ActivityName} activity timed out after {current.RetryCount} {(current.RetryCount == 1 ? "retry" : "retries")}."
                 );
-               // current.TimestampRecord_UpdateProductStateHistory(product);
+                // current.TimestampRecord_UpdateProductStateHistory(product);
                 await _store.WriteActivityStateAsync(current);
                 throw new FlowManagerRecoverableException(
                     $"Activity {current.ActivityName} timed out."
@@ -372,17 +372,14 @@ public static class BaseActivities
         return product;
     }
 
-    [DebuggerStepThrough]
+    //[DebuggerStepThrough]
     internal async static Task<Product> InjectEmulations(Product product)
     {
         var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
         if (current.State == ActivityState.Stuck || current.State == ActivityState.Stalled)
         { // Either of these will mean that the product was never returned,
             // because an exception was thrown, so the last disruption is still stacked.
-            if (current.RetryCount == 0)
-            {
-                product.PopDisruption();
-            }
+            product.PopDisruption();
         }
         if (product.IsDisrupted)
         {
@@ -398,8 +395,6 @@ public static class BaseActivities
             {
                 product.LastState = ActivityState.Stalled;
                 product.Errors = "(Recoverable error) Stalled activity (emulated).";
-                // this is needed because otherwise stall will be infinite....
-                //product.PopDisruption();
             }
             else if (MatchesDisruption(product.NextDisruption, Disruption.Crash))
             {
@@ -415,8 +410,6 @@ public static class BaseActivities
             {
                 product.LastState = ActivityState.Stuck;
                 product.Errors = "(Timing out activity) Stuck (emulated).";
-                // await Task.Delay(_test_delay * 1.1);
-                //  product.PopDisruption();
             }
         }
         return product;
