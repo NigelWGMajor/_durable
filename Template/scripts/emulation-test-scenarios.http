@@ -187,3 +187,19 @@ Content-Type: application/json
         "Stick"
     ]
 }
+/*
+### Choke
+
+Should delay for resources.
+*/
+###
+POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
+Content-Type: application/json
+
+{
+    "name":"Choke_should_delay_for_resources", 
+    "uniqueKey":"2016",
+    "disruptions":[
+        "Choke"
+    ]
+}
