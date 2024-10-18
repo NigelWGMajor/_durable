@@ -13,8 +13,6 @@ using System.Threading.Tasks;
 /* deterministic and thread safe. */
 public static class TestActivities
 {
-   
-
     // These are representative of the activities that do the actual processing.
     // They are not deterministic because they are async and have side effects.
     // They are not thread safe because they are not deterministic.
@@ -27,7 +25,7 @@ public static class TestActivities
     {
         // PRODUCT PROCESSING //////////////////////////////////////////////////////////////////
         await Task.Delay(_tiny_delay);
-        product.Output = "Alpha was here.";
+        product.Output += "Alpha was here. ";
         product.LastState = ActivityState.Completed;
         // PRODUCT NOW PROCESSED. //////////////////////////////////////////////////////////////
         return product;
@@ -37,7 +35,7 @@ public static class TestActivities
     {
         // PRODUCT PROCESSING //////////////////////////////////////////////////////////////////
         await Task.Delay(_tiny_delay);
-        product.Output = "Bravo was here.";
+        product.Output += "Bravo was here. ";
         product.LastState = ActivityState.Completed;
         // PRODUCT NOW PROCESSED. //////////////////////////////////////////////////////////////
         return product;
@@ -47,7 +45,7 @@ public static class TestActivities
     {
         // PRODUCT PROCESSING //////////////////////////////////////////////////////////////////
         await Task.Delay(_tiny_delay);
-        product.Output = "Charlie was here.";
+        product.Output += "Charlie was here. ";
         product.LastState = ActivityState.Completed;
         // PRODUCT NOW PROCESSED. //////////////////////////////////////////////////////////////
         return product;
@@ -62,6 +60,7 @@ public static class TestActivities
     {
         try
         {
+            var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
             bool fakeStuck = false;
             product = await InjectEmulations(product);
             if (product.LastState == ActivityState.Failed)
@@ -82,7 +81,10 @@ public static class TestActivities
             }
             if (product.LastState == ActivityState.Active)
             {
-                var executionTask = ExecuteAlpha(product); // points to private function above
+                // current.AddTrace($"Executing {nameof(ActivityAlpha)}");
+                // current.TimestampRecord_UpdateProductStateHistory(product);
+                // await _store.WriteActivityStateAsync(current);
+                var executionTask = Task.Run(() => ExecuteAlpha(product)); // points to private function above // points to private function above
                 var timeoutTask = Task.Delay(_test_delay); // set to appropriate timeout
                 var effectiveTask = await Task.WhenAny(executionTask, timeoutTask);
                 if (effectiveTask == timeoutTask || fakeStuck)
@@ -92,7 +94,7 @@ public static class TestActivities
                         "Activity exceeded the time allowed."
                     );
                 }
-                product = await ExecuteAlpha(product);
+                return await executionTask;
             }
             return product;
         }
@@ -149,17 +151,20 @@ public static class TestActivities
             else if (product.LastState == ActivityState.Stuck)
             {
                 if (current.RetryCount == 0)
-                {   // a stall was injected.
+                { // a stall was injected.
                     throw new FlowManagerRecoverableException(product.Errors);
                 }
                 else
-                {   // this needs to be be retried because it was previously stalled.
+                { // this needs to be be retried because it was previously stalled.
                     product.LastState = ActivityState.Active;
                 }
             }
             if (product.LastState == ActivityState.Active)
             {
-                var executionTask = ExecuteBravo(product); // points to private function above
+                // current.AddTrace($"Executing {nameof(ActivityBravo)}");
+                // current.TimestampRecord_UpdateProductStateHistory(product);
+                // await _store.WriteActivityStateAsync(current);
+                var executionTask = Task.Run(() => ExecuteBravo(product)); // points to private function above
                 var timeoutTask = Task.Delay(_big_delay); // set to appropriate timeout
                 var effectiveTask = await Task.WhenAny(executionTask, timeoutTask);
                 if (effectiveTask == timeoutTask)
@@ -168,7 +173,11 @@ public static class TestActivities
                         "Activity exceeded the time allowed."
                     );
                 }
-                product = await ExecuteBravo(product);
+                else 
+                {
+                    return await executionTask;
+                }
+                
             }
             return product;
         }
@@ -199,6 +208,7 @@ public static class TestActivities
     {
         try
         {
+            var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
             product = await InjectEmulations(product);
             if (product.LastState == ActivityState.Failed)
             {
@@ -214,7 +224,10 @@ public static class TestActivities
             }
             if (product.LastState == ActivityState.Active)
             {
-                var executionTask = ExecuteCharlie(product); // points to private function above
+                // current.AddTrace($"Executing {nameof(ActivityCharlie)}");
+                // current.TimestampRecord_UpdateProductStateHistory(product);
+                // await _store.WriteActivityStateAsync(current);
+                var executionTask = Task.Run(() => ExecuteCharlie(product)); // points to private function above // points to private function above
                 var timeoutTask = Task.Delay(_big_delay); // set to appropriate timeout
                 var effectiveTask = await Task.WhenAny(executionTask, timeoutTask);
                 if (effectiveTask == timeoutTask)
@@ -223,7 +236,7 @@ public static class TestActivities
                         "Activity exceeded the time allowed."
                     );
                 }
-                product = await ExecuteCharlie(product);
+                return await executionTask;
             }
             return product;
         }

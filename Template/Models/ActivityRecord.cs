@@ -76,15 +76,6 @@ namespace Degreed.SafeTest
             record.Reason = message;
             record.Trace = $"{record.Trace}{_eol_}{record.SequenceNumber}:{message}";
         }
-
-        // public static void AddReason(this ActivityRecord record, string message)
-        // {
-        //     if (record.Reason.Length > 0)
-        //         record.Reason = $"{record.Reason}{record.SequenceNumber}:{message}{_eol_}";
-        //     else
-        //         record.Reason = $"{record.SequenceNumber}:{message}{_eol_}";
-        // }
-
         /// <summary>
         /// Update the product LastSate and history using this ActivityRecord.
         /// </summary>

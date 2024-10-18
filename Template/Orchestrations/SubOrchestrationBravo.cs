@@ -33,9 +33,10 @@ public static class SubOrchestrationBravo // rename this and the file to match t
         );
         if (product.LastState == ActivityState.Deferred)
         {
+            var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
             await context.CreateTimer(Settings.WaitTime, CancellationToken.None);
+            await _store.WriteActivityStateAsync(current);
             product.LastState = ActivityState.unknown;
-            logger.LogInformation("*** Deferred timer released ***"); //!
             context.ContinueAsNew(product);
             return product;
         }
@@ -51,7 +52,7 @@ public static class SubOrchestrationBravo // rename this and the file to match t
         if (
             product.LastState != ActivityState.Redundant && product.ActivityName == _operation_name_
         )
-        { // right here is where we are either retrying or starting the activity
+        {
             product = await context.CallActivityAsync<Product>(
                 _operation_name_,
                 product,

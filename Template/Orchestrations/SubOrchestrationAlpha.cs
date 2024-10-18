@@ -35,9 +35,7 @@ public static class SubOrchestrationAlpha // rename this and the file to match t
         if (product.LastState == ActivityState.Deferred)
         {
             var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
-            current.AddTrace($"Applying deferred wait of {Settings.WaitTime}");
             await context.CreateTimer(Settings.WaitTime, CancellationToken.None);
-            current.AddTrace($"Wait complete");
             await _store.WriteActivityStateAsync(current);
             product.LastState = ActivityState.unknown;
             context.ContinueAsNew(product);
