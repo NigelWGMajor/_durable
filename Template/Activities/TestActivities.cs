@@ -81,9 +81,6 @@ public static class TestActivities
             }
             if (product.LastState == ActivityState.Active)
             {
-                // current.AddTrace($"Executing {nameof(ActivityAlpha)}");
-                // current.TimestampRecord_UpdateProductStateHistory(product);
-                // await _store.WriteActivityStateAsync(current);
                 var executionTask = Task.Run(() => ExecuteAlpha(product)); // points to private function above // points to private function above
                 var timeoutTask = Task.Delay(_test_delay); // set to appropriate timeout
                 var effectiveTask = await Task.WhenAny(executionTask, timeoutTask);
@@ -91,7 +88,7 @@ public static class TestActivities
                 {
                     product.LastState = ActivityState.Stuck;
                     throw new FlowManagerRecoverableException(
-                        "Activity exceeded the time allowed."
+                        $"Activity exceeded the time allowed{(fakeStuck ? " (emulated)" : "")}."
                     );
                 }
                 return await executionTask;
@@ -134,82 +131,7 @@ public static class TestActivities
         try
         {
             var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
-            product = await InjectEmulations(product);
-            if (product.LastState == ActivityState.Failed)
-            {
-                throw new FlowManagerFatalException(product.Errors);
-            }
-            else if (product.LastState == ActivityState.Stalled)
-            {
-                if (current.RetryCount == 0)
-                { // a stall was injected.
-                    throw new FlowManagerRecoverableException(product.Errors);
-                }
-                else
-                { // this needs to be be retried because it was previously stalled.
-                    product.LastState = ActivityState.Active;
-                }
-            }
-            else if (product.LastState == ActivityState.Stuck)
-            {
-                if (current.RetryCount == 0)
-                { // a stick was injected.
-                    throw new FlowManagerRecoverableException(product.Errors);
-                }
-                else
-                { // this needs to be be retried because it was previously stalled.
-                    product.LastState = ActivityState.Active;
-                }
-            }
-            if (product.LastState == ActivityState.Active)
-            {
-                // current.AddTrace($"Executing {nameof(ActivityBravo)}");
-                // current.TimestampRecord_UpdateProductStateHistory(product);
-                // await _store.WriteActivityStateAsync(current);
-                var executionTask = Task.Run(() => ExecuteBravo(product)); // points to private function above
-                var timeoutTask = Task.Delay(_big_delay); // set to appropriate timeout
-                var effectiveTask = await Task.WhenAny(executionTask, timeoutTask);
-                if (effectiveTask == timeoutTask)
-                {
-                    throw new FlowManagerRecoverableException(
-                        "Activity exceeded the time allowed."
-                    );
-                }
-                else
-                {
-                    return await executionTask;
-                }
-            }
-            return product;
-        }
-        catch (FlowManagerFatalException ex)
-        { // this will be thrown by the suborchestrator
-            product.LastState = ActivityState.Failed;
-            product.Errors = $"Fatal error: {ex.Message}";
-            return product;
-        }
-        catch (FlowManagerRecoverableException ex)
-        { // this will bubble up to the sub-orchestrator for auto retry
-            var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
-            current.State = ActivityState.Active;
-            current.AddTrace($"Recoverable error: {ex.Message}");
-            current.RetryCount++;
-            current.TimestampRecord_UpdateProductStateHistory(product);
-            await _store.WriteActivityStateAsync(current);
-            throw;
-        }
-    }
-
-    //  [DebuggerStepperBoundary]
-    [Function(nameof(ActivityCharlie))]
-    public static async Task<Product> ActivityCharlie(
-        [ActivityTrigger] Product product,
-        FunctionContext context
-    )
-    {
-        try
-        {
-            var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
+            bool fakeStuck = false;
             product = await InjectEmulations(product);
             if (product.LastState == ActivityState.Failed)
             {
@@ -221,20 +143,22 @@ public static class TestActivities
             }
             if (product.LastState == ActivityState.Stuck)
             {
+                if (MatchesDisruption(product.NextDisruption, Models.Disruption.Stick))
+                {
+                    fakeStuck = (current.RetryCount == 0);
+                }
                 product.LastState = ActivityState.Active;
             }
             if (product.LastState == ActivityState.Active)
             {
-                // current.AddTrace($"Executing {nameof(ActivityCharlie)}");
-                // current.TimestampRecord_UpdateProductStateHistory(product);
-                // await _store.WriteActivityStateAsync(current);
-                var executionTask = Task.Run(() => ExecuteCharlie(product)); // points to private function above // points to private function above
-                var timeoutTask = Task.Delay(_big_delay); // set to appropriate timeout
+                var executionTask = Task.Run(() => ExecuteBravo(product)); // points to private function above // points to private function above
+                var timeoutTask = Task.Delay(_test_delay); // set to appropriate timeout
                 var effectiveTask = await Task.WhenAny(executionTask, timeoutTask);
-                if (effectiveTask == timeoutTask)
+                if (effectiveTask == timeoutTask || fakeStuck)
                 {
+                    product.LastState = ActivityState.Stuck;
                     throw new FlowManagerRecoverableException(
-                        "Activity exceeded the time allowed."
+                        $"Activity exceeded the time allowed{(fakeStuck ? " (emulated)" : "")}."
                     );
                 }
                 return await executionTask;
@@ -250,8 +174,87 @@ public static class TestActivities
         catch (FlowManagerRecoverableException ex)
         {
             var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
-            current.State = ActivityState.Stalled;
+            if (product.LastState == ActivityState.Stuck)
+            {
+                current.State = ActivityState.Stuck;
+            }
+            else
+            {
+                current.State = ActivityState.Stalled;
+            }
+            //current.State = ActivityState.Stalled;
             current.AddTrace($"Recoverable error: {ex.Message}");
+            current.RetryCount++;
+            current.TimestampRecord_UpdateProductStateHistory(product);
+            await _store.WriteActivityStateAsync(current);
+            throw;
+        }
+    }
+    //  [DebuggerStepperBoundary]
+    [Function(nameof(ActivityCharlie))]
+    public static async Task<Product> ActivityCharlie(
+        [ActivityTrigger] Product product,
+        FunctionContext context
+    )
+    {
+        try
+        {
+            var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
+            bool fakeStuck = false;
+            product = await InjectEmulations(product);
+            if (product.LastState == ActivityState.Failed)
+            {
+                throw new FlowManagerFatalException(product.Errors);
+            }
+            else if (product.LastState == ActivityState.Stalled)
+            {
+                throw new FlowManagerRecoverableException(product.Errors);
+            }
+            if (product.LastState == ActivityState.Stuck)
+            {
+                if (MatchesDisruption(product.NextDisruption, Models.Disruption.Stick))
+                {
+                    fakeStuck = (current.RetryCount == 0);
+                }
+                product.LastState = ActivityState.Active;
+            }
+            if (product.LastState == ActivityState.Active)
+            {
+                var executionTask = Task.Run(() => ExecuteCharlie(product)); // points to private function above // points to private function above
+                var timeoutTask = Task.Delay(_test_delay); // set to appropriate timeout
+                var effectiveTask = await Task.WhenAny(executionTask, timeoutTask);
+                if (effectiveTask == timeoutTask || fakeStuck)
+                {
+                    product.LastState = ActivityState.Stuck;
+                    throw new FlowManagerRecoverableException(
+                        $"Activity exceeded the time allowed{(fakeStuck ? " (emulated)" : "")}."
+                    );
+                }
+                return await executionTask;
+            }
+            return product;
+        }
+        catch (FlowManagerFatalException ex)
+        {
+            product.LastState = ActivityState.Failed;
+            product.Errors = $"Fatal error: {ex.Message}";
+            return product;
+        }
+        catch (FlowManagerRecoverableException ex)
+        {
+            var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
+            if (product.LastState == ActivityState.Stuck)
+            {
+                current.State = ActivityState.Stuck;
+            }
+            else
+            {
+                current.State = ActivityState.Stalled;
+            }
+            //current.State = ActivityState.Stalled;
+            current.AddTrace($"Recoverable error: {ex.Message}");
+            current.RetryCount++;
+            current.TimestampRecord_UpdateProductStateHistory(product);
             await _store.WriteActivityStateAsync(current);
             throw;
         }
