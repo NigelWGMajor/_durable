@@ -99,7 +99,7 @@ public static class TestActivities
         catch (FlowManagerFatalException ex)
         {
             product.LastState = ActivityState.Failed;
-            product.Errors = ex.Message;
+            product.Errors = $"Fatal error: {ex.Message}";
             return product;
         }
         catch (FlowManagerRecoverableException ex)
@@ -114,7 +114,7 @@ public static class TestActivities
                 current.State = ActivityState.Stalled;
             }
             //current.State = ActivityState.Stalled;
-            current.AddReason(ex.Message);
+            current.AddTrace($"Recoverable error: {ex.Message}");
             await _store.WriteActivityStateAsync(current);
             throw;
         }
@@ -175,14 +175,14 @@ public static class TestActivities
         catch (FlowManagerFatalException ex)
         { // this will be thrown by the suborchestrator
             product.LastState = ActivityState.Failed;
-            product.Errors = ex.Message;
+            product.Errors = $"Fatal error: {ex.Message}";
             return product;
         }
         catch (FlowManagerRecoverableException ex)
         { // this will bubble up to the sub-orchestrator for auto retry
             var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
             current.State = ActivityState.Active;
-            current.AddReason(ex.Message);
+            current.AddTrace($"Recoverable error: {ex.Message}");
             current.RetryCount++;
             current.TimestampRecord_UpdateProductStateHistory(product);
             await _store.WriteActivityStateAsync(current);
@@ -230,14 +230,14 @@ public static class TestActivities
         catch (FlowManagerFatalException ex)
         {
             product.LastState = ActivityState.Failed;
-            product.Errors = ex.Message;
+            product.Errors = $"Fatal error: {ex.Message}";
             return product;
         }
         catch (FlowManagerRecoverableException ex)
         {
             var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
             current.State = ActivityState.Stalled;
-            current.AddReason(ex.Message);
+            current.AddTrace($"Recoverable error: {ex.Message}");
             await _store.WriteActivityStateAsync(current);
             throw;
         }
