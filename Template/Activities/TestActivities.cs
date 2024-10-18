@@ -75,7 +75,7 @@ public static class TestActivities
             {
                 if (MatchesDisruption(product.NextDisruption, Models.Disruption.Stick))
                 {
-                    fakeStuck = true;
+                    fakeStuck = (current.RetryCount == 0);
                 }
                 product.LastState = ActivityState.Active;
             }
@@ -117,6 +117,8 @@ public static class TestActivities
             }
             //current.State = ActivityState.Stalled;
             current.AddTrace($"Recoverable error: {ex.Message}");
+            current.RetryCount++;
+            current.TimestampRecord_UpdateProductStateHistory(product);
             await _store.WriteActivityStateAsync(current);
             throw;
         }
@@ -151,7 +153,7 @@ public static class TestActivities
             else if (product.LastState == ActivityState.Stuck)
             {
                 if (current.RetryCount == 0)
-                { // a stall was injected.
+                { // a stick was injected.
                     throw new FlowManagerRecoverableException(product.Errors);
                 }
                 else
@@ -173,11 +175,10 @@ public static class TestActivities
                         "Activity exceeded the time allowed."
                     );
                 }
-                else 
+                else
                 {
                     return await executionTask;
                 }
-                
             }
             return product;
         }

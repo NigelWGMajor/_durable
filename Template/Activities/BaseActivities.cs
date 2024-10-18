@@ -307,6 +307,7 @@ public static class BaseActivities
                 current.AddTrace(
                     $"{current.ActivityName} activity timed out after {current.RetryCount} {(current.RetryCount == 1 ? "retry" : "retries")}."
                 );
+               // current.TimestampRecord_UpdateProductStateHistory(product);
                 await _store.WriteActivityStateAsync(current);
                 throw new FlowManagerRecoverableException(
                     $"Activity {current.ActivityName} timed out."
@@ -366,8 +367,8 @@ public static class BaseActivities
             current.AddTrace("(Final) Completed unsuccessfully");
             current.AddTrace(product.Output);
         }
-        await _store.WriteActivityStateAsync(current);
         current.TimestampRecord_UpdateProductStateHistory(product);
+        await _store.WriteActivityStateAsync(current);
         return product;
     }
 
