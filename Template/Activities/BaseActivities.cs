@@ -206,7 +206,7 @@ public static class BaseActivities
         }
         else
         {
-            current.MarkStartTime();
+            //! current.MarkStartTime();
             current.ProcessId = $"{product.Payload.UniqueKey}"; //|{product.Payload.Id}";
         }
         switch (current.State)
@@ -306,7 +306,6 @@ public static class BaseActivities
         var uniqueKey = product.Payload.UniqueKey;
         var current = await _store.ReadActivityStateAsync(uniqueKey);
         ; // POSTPROCESS
-        current.MarkEndTime();
         current.State = product.LastState;
         current.TimestampRecord_UpdateProductStateHistory(product);
         switch (current.State)
