@@ -55,14 +55,14 @@ public class Product
             NextDisruption = "";
         else
         {
-            if (Disruptions[0].Length == 0)
-            {
-                NextDisruption = Disruption.Pass.ToString();
-            }
-            else
-            {
+            // if (Disruptions[0].Length == 0)
+            // {
+            //     NextDisruption = Disruption.Pass.ToString();
+            // }
+            // else
+            // {
                 NextDisruption = Disruptions[0];
-            }
+            // }
             string[] temp = new string[Disruptions.Length - 1];
             string result = Disruptions[0];
             for (int i = 0; i < temp.Length; i++)

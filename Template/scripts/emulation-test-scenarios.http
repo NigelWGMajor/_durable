@@ -53,7 +53,7 @@ POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
-    "name":"normal_operation_should_finish_successfully", 
+    "name":"Parallel_operation_should_finish_successfully", 
     "uniqueKey":"1002"
 }
 /*
@@ -170,7 +170,7 @@ POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
-    "name":"redundant_call_during_drag_should_become_redundant", 
+    "name":"Reentrant_call_during_drag_should_become_redundant", 
     "uniqueKey":"2015"
 }
 /*
