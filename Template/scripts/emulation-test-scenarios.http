@@ -132,7 +132,9 @@ Content-Type: application/json
     "name":"Stall_should_inject_non_fatal_error_in_activity", 
     "uniqueKey":"2013",
     "disruptions":[
-        "Pass",
+        "",
+        "Stall",
+        "Stall",
         "Stall"
     ]
 }

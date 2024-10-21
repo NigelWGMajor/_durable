@@ -153,6 +153,17 @@ public static class BaseActivities
         {
             current = await _store.ReadActivityStateAsync(uniqueKey);
             ; // PREPROCESS
+            if (current.State == ActivityState.Stuck || current.State == ActivityState.Stalled)
+            {
+                // If the current state is Stalled or Stuck, the Product does not have the latest state, because it was never returned.
+                // This is because the activity was thrown back to the orchestrator to retry or fail.
+                // In this case, the last disruption is still stacked. If we have encountered multiple stick or stall injected disruptions,
+                // we will have more than one to unstack.
+                for (int i = 0; i < current.RetryCount; i++)
+                {
+                    product.PopDisruption();
+                }
+            }
             if (product.IsDisrupted)
             {
                 if (product.ActivityName != current.ActivityName)
@@ -160,13 +171,13 @@ public static class BaseActivities
                     // This is a new activity, so we should rotate any disruptions for this activity
                     product.PopDisruption();
                 }
-                if (MatchesDisruption(product.NextDisruption, Disruption.Wait))
-                { // This emulates unavailable metadata so should occur here in the preprocessing loop.
-                    current.AddTrace("Metadata store not available (emulated)");
-                    throw new FlowManagerRecoverableException(
-                        "Pre:  Metadata store not available (emulated)."
-                    );
-                }
+            }
+            if (MatchesDisruption(product.NextDisruption, Disruption.Wait))
+            { // This emulates unavailable metadata so should occur here in the preprocessing loop.
+                current.AddTrace("Metadata store not available (emulated)");
+                throw new FlowManagerRecoverableException(
+                    "Pre:  Metadata store not available (emulated)."
+                );
             }
         }
         catch (FlowManagerRecoverableException ex)
@@ -379,7 +390,11 @@ public static class BaseActivities
         if (current.State == ActivityState.Stuck || current.State == ActivityState.Stalled)
         { // Either of these will mean that the product was never returned,
             // because an exception was thrown, so the last disruption is still stacked.
-            product.PopDisruption();
+            // or if this has been retried, we need to pop the extra disruptions off the stack.
+            for (int i = 0; i < current.RetryCount; i++)
+            {
+                product.PopDisruption();
+            }
         }
         if (product.IsDisrupted)
         {
@@ -394,7 +409,7 @@ public static class BaseActivities
             else if (MatchesDisruption(product.NextDisruption, Disruption.Stall))
             {
                 product.LastState = ActivityState.Stalled;
-                product.Errors = "(Recoverable error) Stalled activity (emulated).";
+                product.Errors = "Stalled activity (emulated).";
             }
             else if (MatchesDisruption(product.NextDisruption, Disruption.Crash))
             {
