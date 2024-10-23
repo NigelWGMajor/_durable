@@ -205,3 +205,28 @@ Content-Type: application/json
         "Choke"
     ]
 }
+/*
+### Previously Unsuccessful
+*/
+###
+POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
+Content-Type: application/json
+
+{
+    "name":"Call_to_previously_unsuccessful_should_become_redundant", 
+    "uniqueKey":"2014"
+}
+/*
+### Previously Successful
+*/
+/*
+
+*/
+###
+POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
+Content-Type: application/json
+
+{
+    "name":"Call_to_previously_successful_should_become_redundant", 
+    "uniqueKey":"2014"
+}

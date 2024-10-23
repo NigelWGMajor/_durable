@@ -60,7 +60,7 @@ namespace Degreed.SafeTest
     [DebuggerStepThrough]
     public static class ActivityRecordExtender
     {
-        private static readonly string _eol_ = "\r\n";
+        private static readonly string _eol_ = "|";
         public static void MarkStartTime(this ActivityRecord record)
         {
             record.TimeStarted = DateTime.UtcNow;
@@ -74,7 +74,7 @@ namespace Degreed.SafeTest
         public static void AddTrace(this ActivityRecord record, string message)
         {
             record.Reason = message;
-            record.Trace = $"{record.Trace}{_eol_}{record.SequenceNumber}:{message}";
+            record.Trace = $"{record.Trace}{_eol_}[{record.SequenceNumber}]:{message}({record.TimeEnded-record.TimeStarted})";
         }
         /// <summary>
         /// Update the product LastSate and history using this ActivityRecord.

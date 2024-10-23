@@ -207,7 +207,7 @@ public static class BaseActivities
         else
         {
             //! current.MarkStartTime();
-            current.ProcessId = $"{product.Payload.UniqueKey}"; //|{product.Payload.Id}";
+            current.ProcessId = $"{Environment.CurrentManagedThreadId}"; //|{product.Payload.Id}";
         }
         switch (current.State)
         {
@@ -225,6 +225,7 @@ public static class BaseActivities
                 if (product.Errors.Length > 0)
                 {
                     // it looks like there was a metadata failure at incept.
+                    current.SequenceNumber = -1;
                     current.AddTrace(
                         $"(Initial) {product.Errors} detected during initial processing."
                     );
@@ -242,6 +243,7 @@ public static class BaseActivities
                 break;
             case ActivityState.Deferred:
                 current.State = ActivityState.Ready; // now we can try again
+                current.SequenceNumber++; //!
                 current.AddTrace($"Ready after deferred");
                 break;
             case ActivityState.Ready:
@@ -253,8 +255,11 @@ public static class BaseActivities
                 return product;
             case ActivityState.Active:
                 product.LastState = ActivityState.Redundant;
-                var threadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
-                current.AddTrace($"Re-entrant thread {threadId} returned as redundant");
+                var threadId = Environment.CurrentManagedThreadId;
+                // we are comparing the thread ids - not sure if they are the same or not...
+                current.AddTrace($"Re-entrant thread {threadId}-{current.ProcessId} returned as redundant");
+                current.State = ActivityState.Active;
+                current.SequenceNumber++; //!
                 await _store.WriteActivityStateAsync(current);
                 return product;
             // }
@@ -277,10 +282,12 @@ public static class BaseActivities
                 break;
             case ActivityState.Successful:
                 current.AddTrace($"Re-entrant call on already successful operation rejected");
+                current.SequenceNumber++; //!
                 product.LastState = ActivityState.Redundant;
                 return product;
             case ActivityState.Unsuccessful:
                 current.AddTrace($"Re-entrant call on already unsuccessful operation rejected");
+                current.SequenceNumber++; //!
                 product.LastState = ActivityState.Redundant;
                 return product;
         }
@@ -328,23 +335,29 @@ public static class BaseActivities
                 current.RetryCount++;
                 // On return, the state will be read from the current. This should be be the same as when the activity was originally attempted.
                 current.State = ActivityState.Active;
+                current.SequenceNumber--; //!
                 current.AddTrace(
                     $"{current.ActivityName} activity stalled with non-fatal error after {current.RetryCount} {(current.RetryCount == 1 ? "retry" : "retries")}."
                 );
+                current.SequenceNumber++; //!
                 current.TimestampRecord_UpdateProductStateHistory(product);
                 await _store.WriteActivityStateAsync(current);
                 throw new FlowManagerRecoverableException(product.Errors);
             case ActivityState.Failed: // Will be thrown up to orchestrator.
+                current.SequenceNumber--; //! 
                 current.AddTrace(
                     $"{current.ActivityName} activity failed with fatal error after {current.RetryCount} {(current.RetryCount == 1 ? "retry" : "retries")}."
                 );
+                current.SequenceNumber++; //!
                 current.State = ActivityState.Unsuccessful;
                 await _store.WriteActivityStateAsync(current);
                 return product;
             default: // Completed
+                current.SequenceNumber--; //!
                 current.AddTrace(
                     $"{current.ActivityName} activity completed successfully after {current.RetryCount} {(current.RetryCount == 1 ? "retry" : "retries")}."
                 );
+                current.SequenceNumber++; //!
                 current.RetryCount = 0;
                 await _store.WriteActivityStateAsync(current);
                 return product;
@@ -361,23 +374,24 @@ public static class BaseActivities
         var uniqueKey = product.Payload.UniqueKey;
         string iid = context.InvocationId.Substring(0, 8);
         var current = await _store.ReadActivityStateAsync(uniqueKey);
+        
         ; // FINISH
-        current.TimestampRecord_UpdateProductStateHistory(product);
+       // current.TimestampRecord_UpdateProductStateHistory(product);
         if (
             current.State == ActivityState.Completed && product.ActivityName == current.ActivityName
         )
         {
             current.State = ActivityState.Successful;
             current.AddTrace("(Final) All activities successfully completed");
-            current.AddTrace(product.Output);
         }
         else
         {
             current.State = ActivityState.Unsuccessful;
             current.AddTrace("(Final) Completed unsuccessfully");
-            current.AddTrace(product.Output);
         }
+        //current.SequenceNumber++;
         current.TimestampRecord_UpdateProductStateHistory(product);
+        current.AddTrace($"Output: {product.Output}");
         await _store.WriteActivityStateAsync(current);
         return product;
     }
