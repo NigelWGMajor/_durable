@@ -343,6 +343,17 @@ values (
         json_value(@json, '$.SequenceNumber'),
         cast(@Timestamp as DateTime2)
     )
+if (json_value(@json, '$.ActivityState') > 8)
+begin
+   declare @maxRetries int = (
+      select max(RetryCount) 
+      from rpt.OperationFlowStateHistory 
+      where UniqueKey = json_value(@json, '$.UniqueKey')
+   );
+update rpt.OperationFlowStates 
+set RetryCount = @maxRetries 
+where UniqueKey = json_value(@json, '$.UniqueKey')
+end
 end;
 go 
 print '*** Ensuring Purge stored procedures';
