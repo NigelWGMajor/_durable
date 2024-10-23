@@ -4,6 +4,7 @@ using Microsoft.DurableTask;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Azure.Functions.Worker;
 using System.Diagnostics;
+using Microsoft.Azure.Functions.Worker.Http;
 
 namespace Activities;
 
@@ -460,5 +461,73 @@ public static class BaseActivities
         }
         // you may add memory and/or cpu stress detectors here
         return false;
+    }
+    
+    internal static async Task<Product> Process(
+        Func<Product, Task<Product>> activity,
+        Product product,
+        TimeSpan timeout
+    )
+    {
+        try
+        {
+            var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
+            bool fakeStuck = false;
+            product = await InjectEmulations(product);
+            if (product.LastState == ActivityState.Failed)
+            {
+                throw new FlowManagerFatalException(product.Errors);
+            }
+            else if (product.LastState == ActivityState.Stalled)
+            {
+                throw new FlowManagerRecoverableException(product.Errors);
+            }
+            if (product.LastState == ActivityState.Stuck)
+            {
+                if (MatchesDisruption(product.NextDisruption, Models.Disruption.Stick))
+                {
+                    fakeStuck = (current.RetryCount == 0);
+                }
+                product.LastState = ActivityState.Active;
+            }
+            if (product.LastState == ActivityState.Active)
+            {
+                var executionTask = Task.Run(() => activity(product)); 
+                var timeoutTask = Task.Delay(timeout);
+                var effectiveTask = await Task.WhenAny(executionTask, timeoutTask);
+                if (effectiveTask == timeoutTask || fakeStuck)
+                {
+                    product.LastState = ActivityState.Stuck;
+                    throw new FlowManagerRecoverableException(
+                        $"Activity exceeded the time allowed{(fakeStuck ? " (emulated)" : "")}."
+                    );
+                }
+                return await executionTask;
+            }
+            return product;
+        }
+        catch (FlowManagerFatalException ex)
+        {
+            product.LastState = ActivityState.Failed;
+            product.Errors = $"Fatal error: {ex.Message}";
+            return product;
+        }
+        catch (FlowManagerRecoverableException ex)
+        {
+            var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
+            if (product.LastState == ActivityState.Stuck)
+            {
+                current.State = ActivityState.Stuck;
+            }
+            else
+            {
+                current.State = ActivityState.Stalled;
+            }
+            current.AddTrace($"Recoverable error: {ex.Message}");
+            current.RetryCount++;
+            current.TimestampRecord_UpdateProductStateHistory(product);
+            await _store.WriteActivityStateAsync(current);
+            throw;
+        }
     }
 }

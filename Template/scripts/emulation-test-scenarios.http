@@ -38,7 +38,7 @@ Three records with Unique Keys. Each takes a minute or so to complete.
 /*
 ## Happy Path operations running in parallel
 */
-POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
+POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
@@ -46,10 +46,10 @@ Content-Type: application/json
     "uniqueKey":"1001"
 }
 /*
-
+### parallel
 */
 ###
-POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
+POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
@@ -57,10 +57,10 @@ Content-Type: application/json
     "uniqueKey":"1002"
 }
 /*
-
+### Re-entrant
 */
 ###
-POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
+POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
@@ -71,7 +71,7 @@ Content-Type: application/json
 
 */
 ###
-POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
+POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
@@ -79,10 +79,10 @@ Content-Type: application/json
     "uniqueKey":"1003"
 }
 /*
-
+### Wait
 */
 ###
-POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
+POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
@@ -93,10 +93,10 @@ Content-Type: application/json
     ]
 }
 /*
-
+### Crash
 */
 ###
-POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
+POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
@@ -107,10 +107,11 @@ Content-Type: application/json
     ]
 }
 /*
+### Pass
 
 */
 ###
-POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
+POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
@@ -122,10 +123,11 @@ Content-Type: application/json
     ]
 }
 /*
+### Stall
 
 */
 ###
-POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
+POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
@@ -138,8 +140,11 @@ Content-Type: application/json
         "Stall"
     ]
 }
+/*
+### Fail
+*/
 ###
-POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
+POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
@@ -151,10 +156,11 @@ Content-Type: application/json
     ]
 }
 /*
+### Drag
 
 */
 ###
-POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
+POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
@@ -168,7 +174,7 @@ Content-Type: application/json
 
 */
 ###
-POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
+POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
@@ -176,10 +182,10 @@ Content-Type: application/json
     "uniqueKey":"2015"
 }
 /*
-
+### Stick
 */
 ###
-POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
+POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
@@ -195,7 +201,7 @@ Content-Type: application/json
 Should delay for resources.
 */
 ###
-POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
+POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
@@ -209,7 +215,7 @@ Content-Type: application/json
 ### Previously Unsuccessful
 */
 ###
-POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
+POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
@@ -219,11 +225,8 @@ Content-Type: application/json
 /*
 ### Previously Successful
 */
-/*
-
-*/
 ###
-POST http://localhost:7071/api/OrchestrationZulu_HttpStart HTTP/1.1
+POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
