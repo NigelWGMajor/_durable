@@ -4,6 +4,7 @@ using Microsoft.DurableTask;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Azure.Functions.Worker;
 using System.Diagnostics;
+using Microsoft.Azure.Functions.Worker.Http;
 
 namespace Activities;
 
