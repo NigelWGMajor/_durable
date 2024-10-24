@@ -373,4 +373,196 @@ set nocount on;
 truncate table rpt.OperationFlowStateHistory;
 end;
 go 
+-- create settings table
+set ansi_nulls on
+go
+set quoted_identifier on
+go
+create table [rpt].[ActivitySettings](
+	[ActivitySettingsId] [int] identity(1,1) not null,
+	[ActivityName] [nvarchar](100) not null,
+	[NumberOfRetries] [int] null,
+	[InitialDelay] [float] null,
+	[BackOffCoefficient] [float] null,
+	[MaximumDelay] [float] null,
+	[RetryTimeout] [float] null,
+	[ActivityTimeout] [float] null,
+	[IsIOIntensive] [bit] null,
+	[IsMemoryIntensive] [bit] null,
+	[PartitionId] [int] null,
+ constraint [PK_ActivitySettings] primary key clustered 
+(
+	[ActivitySettingsId] asc
+) with (pad_index = off, statistics_norecompute = off, ignore_dup_key = off, allow_row_locks = on, allow_page_locks = on, optimize_for_sequential_key = off) on [primary]
+) on [primary]
+go
+alter table [rpt].[ActivitySettings] add  constraint [DF_ActivitySettings_PartitionId]  default ((0)) for [PartitionId]
+go
+-- add test data
+use [OperationsLocal]
+go
+set identity_insert [rpt].[ActivitySettings] on 
+go
+insert [rpt].[ActivitySettings] 
+  ([ActivitySettingsId], [ActivityName], [NumberOfRetries], [InitialDelay], [BackOffCoefficient], 
+  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [IsIOIntensive], [IsMemoryIntensive], [PartitionId]) 
+values (1, N'Default', 8, 0.1, 1.4142, 2.5, 24, 1, 0, 0, 0)
+go
+insert [rpt].[ActivitySettings] 
+  ([ActivitySettingsId], [ActivityName], [NumberOfRetries], [InitialDelay], [BackOffCoefficient], 
+  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [IsIOIntensive], [IsMemoryIntensive], [PartitionId]) 
+values (2, N'Test', 3, 0.03, 1, null, 0.2, 0.03, 0, 0, 0)
+go
+insert [rpt].[ActivitySettings] 
+  ([ActivitySettingsId], [ActivityName], [NumberOfRetries], [InitialDelay], [BackOffCoefficient], 
+  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [IsIOIntensive], [IsMemoryIntensive], [PartitionId]) 
+values (3, N'ActivityAlpha', 3, 0.03, null, null, 0.2, 0.03, 0, 0, 0)
+go
+insert [rpt].[ActivitySettings] 
+  ([ActivitySettingsId], [ActivityName], [NumberOfRetries], [InitialDelay], [BackOffCoefficient], 
+  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [IsIOIntensive], [IsMemoryIntensive], [PartitionId]) 
+values (4, N'ActivityBravo', 3, 0.03, null, null, 0.2, 0.03, 0, 0, 0)
+go
+insert [rpt].[ActivitySettings] 
+  ([ActivitySettingsId], [ActivityName], [NumberOfRetries], [InitialDelay], [BackOffCoefficient], 
+  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [IsIOIntensive], [IsMemoryIntensive], [PartitionId]) 
+values (5, N'ActivityCharlie', 3, 0.03, null, null, 0.2, 0.03, 0, 0, 0)
+go
+insert [rpt].[ActivitySettings] 
+  ([ActivitySettingsId], [ActivityName], [NumberOfRetries], [InitialDelay], [BackOffCoefficient], 
+  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [IsIOIntensive], [IsMemoryIntensive], [PartitionId]) 
+values (6, N'PreProcessAsync', 8, 0.1, 1.4142, null, 24, null, null, null, null)
+go
+insert [rpt].[ActivitySettings] 
+  ([ActivitySettingsId], [ActivityName], [NumberOfRetries], [InitialDelay], [BackOffCoefficient], 
+  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [IsIOIntensive], [IsMemoryIntensive], [PartitionId]) 
+values (7, N'PostProcessAsync', 8, 0.1, 1.4142, null, 24, null, null, null, null)
+go
+insert [rpt].[ActivitySettings] 
+  ([ActivitySettingsId], [ActivityName], [NumberOfRetries], [InitialDelay], [BackOffCoefficient], 
+  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [IsIOIntensive], [IsMemoryIntensive], [PartitionId]) 
+values (8, N'FinishAsync', 8, 0.1, 1.4142, null, 24, null, null, null, null)
+go
+set identity_insert [rpt].[ActivitySettings] off
+go
+-- add read proc for settings
+create procedure rpt.ActivitySettings_Read @ActivityName nvarchar(100)
+as
+begin
+  with def as (
+    select
+        top (1) ActivitySettingsId,
+        ActivityName,
+        NumberOfRetries,
+        InitialDelay,
+        BackOffCoefficient,
+        MaximumDelay,
+        RetryTimeout,
+        ActivityTimeout,
+        IsIOIntensive,
+        IsMemoryIntensive,
+        PartitionId
+    from
+        rpt.ActivitySettings
+    where
+        ActivityName = 'default'
+  ),
+  main as (
+    select
+        top (1) ActivitySettingsId,
+        ActivityName,
+        NumberOfRetries,
+        InitialDelay,
+        BackOffCoefficient,
+        MaximumDelay,
+        RetryTimeout,
+        ActivityTimeout,
+        IsIOIntensive,
+        IsMemoryIntensive,
+        PartitionId
+    from
+        rpt.ActivitySettings
+    where
+        ActivityName = @ActivityName
+  )
+  select
+    isnull(main.ActivityName, @ActivityName) ActivityName,
+	isnull(main.NumberOfRetries, def.NumberOfRetries) NumberOfRetries,
+    isnull(main.InitialDelay, def.InitialDelay) InitialDelay,
+    isnull(main.BackOffCoefficient, def.BackOffCoefficient) BackOffCoefficient,
+    isnull(main.MaximumDelay, def.MaximumDelay) MaximumDelay,
+    isnull(main.RetryTimeout, def.RetryTimeout) RetryTimeout,
+    isnull(main.ActivityTimeout, def.ActivityTimeout) ActivityTimeout,
+    isnull(main.IsIOIntensive, def.IsIOIntensive) IsIOIntensive,
+    isnull(main.IsMemoryIntensive, def.IsMemoryIntensive) IsMemoryIntensive,
+    isnull(main.PartitionId, def.PartitionId) PartitionId
+  from
+    def left join main on 1 = 1
+end
+go
+-- add write proc for settings
+set ansi_nulls on
+go
+set quoted_identifier on
+go
+alter procedure [rpt].[ActivitySettings_Write] @json nvarchar(max) as 
+begin
+  set nocount on;
+  merge rpt.ActivitySettings as target 
+  using (
+    select
+        json_value(@json, '$.ActivityName') as ActivityName,
+        json_value(@json, '$.NumberOfRetries') as NumberOfRetries,
+        json_value(@json, '$.InitialDelay') as InitialDelay,
+        json_value(@json, '$.BackOffCoefficient') as BackOffCoefficient,
+        json_value(@json, '$.MaximumDelay') as MaximumDelay,
+        json_value(@json, '$.RetryTimeout') as RetryTimeout,
+        json_value(@json, '$.ActivityTimeout') as ActivityTimeout,
+        json_value(@json, '$.IsIOIntensive') as IsIOIntensive,
+        json_value(@json, '$.IsMemoryIntensive') as IsMemoryIntensive,
+        json_value(@json, '$.PartitionId') as PartitionId
+    ) as source on (target.ActivityName = source.ActivityName)
+    when matched then
+      update
+      set
+        ActivityName = source.ActivityName,
+        NumberOfRetries = source.NumberOfRetries,
+        InitialDelay = source.InitialDelay,
+        BackOffCoefficient = source.BackOffCoefficient,
+        MaximumDelay = source.MaximumDelay,
+        RetryTimeout = source.RetryTimeout,
+        ActivityTimeout = source.ActivityTimeout,
+        IsIOIntensive = source.IsIOIntensive,
+        IsMemoryIntensive = source.IsMemoryIntensive,
+        PartitionId = source.PartitionId
+    when not matched then
+      insert
+      (
+        ActivityName,
+        NumberOfRetries,
+        InitialDelay,
+        BackOffCoefficient,
+        MaximumDelay,
+        RetryTimeout,
+        ActivityTimeout,
+        IsIOIntensive,
+        IsMemoryIntensive,
+        PartitionId
+      )
+      values
+      (
+        source.ActivityName,
+        source.NumberOfRetries,
+        source.InitialDelay,
+        source.BackOffCoefficient,
+        source.MaximumDelay,
+        source.RetryTimeout,
+        source.ActivityTimeout,
+        source.IsIOIntensive,
+        source.IsMemoryIntensive,
+        source.PartitionId
+      );
+end
+go
+
 print '*** Done.';
