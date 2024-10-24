@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Azure.Functions.Worker;
 using System.Diagnostics;
 using Microsoft.Azure.Functions.Worker.Http;
+using System.Security.Principal;
 
 namespace Activities;
 
@@ -26,87 +27,28 @@ public static class BaseActivities
     internal static TimeSpan _short_delay = TimeSpan.FromHours(1);
     internal static TimeSpan _long_delay = TimeSpan.FromHours(12);
 
-    /// <summary>
-    /// The options generated for tuning retries are decided here based on some generic inputs.
-    /// If the operation is Disrupted (i.e. emulated disruptions have been injected for testing)
-    /// then a set of values is provided to expedite integration testing. Otherwise defaults
-    /// are established, and some or all of these may be overridden by the presence of flags specifying
-    /// that the activity is Long Running, has High Memory Usage or has intensive data or file IO.
-    /// </summary>
-    /// <param name="longRunning"></param>
-    /// <param name="highMemory"></param>
-    /// <param name="highDataOrFile"></param>
-    /// <param name="isDisrupted"></param>
-    /// <returns></returns>
-    [DebuggerStepThrough]
-    internal static TaskOptions GetOptions(
-        bool longRunning = false,
-        bool highMemory = false,
-        bool highDataOrFile = false,
-        bool isDisrupted = false
-    )
+    internal const string _pre_processor_name_ = nameof(PreProcessAsync);
+    internal const string _post_processor_name_ = nameof(PostProcessAsync);
+    internal const string _finish_processor_name_ = nameof(FinishAsync);
+    internal const string _sub_orchestration_name_ = "default";
+
+    internal static async Task<TaskOptions> GetRetryOptionsAsync(string activityName, Product product)
     {
-        Int32 numberOfRetries;
-        TimeSpan initialDelay;
-        double backoffCoefficient;
-        TimeSpan? maxDelay,
-            timeout;
-
-        if (isDisrupted)
+        if (product.IsDisrupted)
         {
-            // reduced for emulation and testing
-            numberOfRetries = 5;
-            initialDelay = TimeSpan.FromMinutes(1);
-            backoffCoefficient = 1.0;
-            maxDelay = TimeSpan.FromHours(3);
-            timeout = TimeSpan.FromHours(1);
-            Settings.MaximumActivityTime = TimeSpan.FromMinutes(20);
-            Settings.StickCap = 5;
-            Settings.WaitTime = TimeSpan.FromMinutes(1.5);
+            activityName = "Test";
         }
-        else
-        {
-            // defaults
-            numberOfRetries = 5;
-            initialDelay = TimeSpan.FromMinutes(5);
-            backoffCoefficient = 2.0;
-            maxDelay = TimeSpan.FromHours(3);
-            timeout = TimeSpan.FromHours(2);
-
-            Settings.MaximumActivityTime = TimeSpan.FromHours(12);
-            Settings.StickCap = 2;
-            Settings.WaitTime = TimeSpan.FromMinutes(10); //!  need to adjust to 10
-            // overrides are cumulative
-            if (highDataOrFile)
-            { // increased latency, lengthen recovery period
-                initialDelay = TimeSpan.FromMinutes(10);
-                timeout = TimeSpan.FromHours(8);
-            }
-            if (longRunning)
-            { // allow to run longer and retry more
-                numberOfRetries = 10;
-                initialDelay = TimeSpan.FromMinutes(8);
-                backoffCoefficient = 1.4141214;
-                timeout = TimeSpan.FromHours(12);
-            }
-            if (highMemory)
-            { // greater chance of resource depletion, allow longer delays for recovery, more retries
-                numberOfRetries = 10;
-                initialDelay = TimeSpan.FromMinutes(10);
-                backoffCoefficient = 1.4141214;
-                timeout = TimeSpan.FromHours(6);
-            }
-        }
+        ActivitySettings settings = await _store.ReadActivitySettings(activityName);
+        product.NextTimeout = TimeSpan.FromHours(settings.ActivityTimeout.GetValueOrDefault());
         RetryPolicy policy = new RetryPolicy(
-            numberOfRetries,
-            initialDelay,
-            backoffCoefficient,
-            maxDelay,
-            timeout
+            settings.NumberOfRetries.GetValueOrDefault(),
+            TimeSpan.FromHours(settings.InitialDelay.GetValueOrDefault()),
+            settings.BackOffCoefficient.GetValueOrDefault(),
+            TimeSpan.FromHours(settings.MaximumDelay.GetValueOrDefault()),
+            TimeSpan.FromHours(settings.RetryTimeout.GetValueOrDefault())
         );
         return new TaskOptions(TaskRetryOptions.FromRetryPolicy(policy));
     }
-
     internal static DataStore _store;
 
     [DebuggerStepThrough]
@@ -465,12 +407,12 @@ public static class BaseActivities
     
     internal static async Task<Product> Process(
         Func<Product, Task<Product>> activity,
-        Product product,
-        TimeSpan timeout
+        Product product
     )
     {
         try
         {
+            var timeout = product.NextTimeout;
             var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
             bool fakeStuck = false;
             product = await InjectEmulations(product);

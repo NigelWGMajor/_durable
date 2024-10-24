@@ -54,7 +54,8 @@ public static class TestOrchestration
         product = await context.CallSubOrchestratorAsync<Product>(
             nameof(OrchestrationAlpha),
             product,
-            GetOptions(true).WithInstanceId($"{id}Alpha)")
+            (await GetRetryOptionsAsync(_sub_orchestration_name_, product))
+            .WithInstanceId($"{id}Alpha)")
         );
         if (MatchesDisruption(product.NextDisruption, Models.Disruption.Crash))
             throw new Exception("Emulated Crash in main orchestrator");
@@ -65,7 +66,8 @@ public static class TestOrchestration
             product = await context.CallSubOrchestratorAsync<Product>(
                 nameof(OrchestrationBravo),
                 product,
-                GetOptions(true, true, true).WithInstanceId($"{id}Bravo)")
+                (await GetRetryOptionsAsync(_sub_orchestration_name_, product))
+                .WithInstanceId($"{id}Bravo)")
             );
         }
         if (MatchesDisruption(product.NextDisruption, Models.Disruption.Crash))
@@ -77,7 +79,8 @@ public static class TestOrchestration
             product = await context.CallSubOrchestratorAsync<Product>(
                 nameof(OrchestrationCharlie),
                 product,
-                GetOptions(false, true, true, true).WithInstanceId($"{id}Charlie)")
+                (await GetRetryOptionsAsync(_sub_orchestration_name_, product))
+                .WithInstanceId($"{id}Charlie)")
             );
         }
         index++;
@@ -85,9 +88,10 @@ public static class TestOrchestration
         if (product.LastState != ActivityState.Redundant)
         {
             product = await context.CallActivityAsync<Product>(
-                nameof(FinishAsync),
+                _finish_processor_name_,
                 product,
-                GetOptions().WithInstanceId($"{id}Final)")
+                (await GetRetryOptionsAsync(_finish_processor_name_, product))
+                .WithInstanceId($"{id}Final)")
             );
         }
         context.SetCustomStatus($"{product.LastState}{index++:00}");

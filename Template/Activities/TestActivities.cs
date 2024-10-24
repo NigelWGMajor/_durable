@@ -84,7 +84,7 @@ public static class TestActivities
         FunctionContext context
     )
     {
-        return await Process(ExecuteAlpha, product, _test_delay);
+        return await Process(ExecuteAlpha, product);
     }
     [Function(nameof(ActivityBravo))]
     public static async Task<Product> ActivityBravo(
@@ -92,7 +92,7 @@ public static class TestActivities
         FunctionContext context
     )
     {
-        return await Process(ExecuteBravo, product, _test_delay);
+        return await Process(ExecuteBravo, product);
     }
     [Function(nameof(ActivityCharlie))]
     public static async Task<Product> ActivityCharlie(
@@ -100,7 +100,7 @@ public static class TestActivities
         FunctionContext context
     )
     {
-         return await Process(ExecuteCharlie, product, _test_delay);
+         return await Process(ExecuteCharlie, product);
     } 
     #endregion // Durable Activities
 }

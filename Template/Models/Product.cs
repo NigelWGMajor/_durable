@@ -14,27 +14,27 @@ public class Product
     {
         Payload = new Payload();
     }
-    [JsonPropertyName("operationName")]
+    [JsonPropertyName("OperationName")]
     public string OperationName { get; set; } = "";
-    [JsonPropertyName("activityName")]
+    [JsonPropertyName("ActivityName")]
     public string ActivityName { get; set; } = "";
-    [JsonPropertyName("payLoad")]
+    [JsonPropertyName("PayLoad")]
     public Payload Payload { get; set; }
-    [JsonPropertyName("lastState")]
+    [JsonPropertyName("LastState")]
     public ActivityState LastState { get; set; } = ActivityState.unknown;
-    [JsonPropertyName("activityHistory")]
+    [JsonPropertyName("ActivityHistory")]
     public List<ActivityRecord> ActivityHistory { get; set; } = new List<ActivityRecord>();
     [JsonIgnore()]
     public bool IsDisrupted => Disruptions.Length > 0 || NextDisruption.Length > 0; 
-    [JsonPropertyName("errors")]
+    [JsonPropertyName("Errors")]
     public string Errors { get; set; }  = "";
-    [JsonPropertyName("instanceId")]
+    [JsonPropertyName("InstanceId")]
     public string InstanceId { get; set; } = "";
-    [JsonPropertyName("disruptions")]
+    [JsonPropertyName("Disruptions")]
     public string[] Disruptions { get; set; } = [];
-    [JsonPropertyName("nextDisruption")]
+    [JsonPropertyName("NextDisruption")]
     public string NextDisruption { get; set; } = "";
-    [JsonPropertyName("output")]
+    [JsonPropertyName("Output")]
     public string Output { get; set; } = "";
     public static Product FromContext(TaskOrchestrationContext context)
     {
@@ -42,6 +42,8 @@ public class Product
             new Product() 
             : context.GetInput<Product>() ?? new Product();
     }
+    [JsonPropertyName("NextTimeout")]
+    public TimeSpan NextTimeout { get; set; } = TimeSpan.Zero;
 
     /// <summary>
     /// Pops the next disruption (or an empty string) off the disruptions stack

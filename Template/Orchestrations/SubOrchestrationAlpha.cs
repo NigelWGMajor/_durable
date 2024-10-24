@@ -27,9 +27,9 @@ public static class SubOrchestrationAlpha // rename this and the file to match t
         product.ActivityName = _operation_name_;
         product.InstanceId = context.InstanceId;
         product = await context.CallActivityAsync<Product>(
-            nameof(PreProcessAsync),
+            _pre_processor_name_,
             product,
-            GetOptions(isDisrupted: product.IsDisrupted)
+            (await GetRetryOptionsAsync(_pre_processor_name_, product))
                 .WithInstanceId($"{context.InstanceId})-pre")
         );
         if (product.LastState == ActivityState.Deferred)
@@ -57,13 +57,13 @@ public static class SubOrchestrationAlpha // rename this and the file to match t
             product = await context.CallActivityAsync<Product>(
                 _operation_name_,
                 product,
-                GetOptions(longRunning, highMemory, highDataOrFile, product.IsDisrupted)
+                (await GetRetryOptionsAsync(_operation_name_, product))
                     .WithInstanceId($"{context.InstanceId})-activity")
             );
             product = await context.CallActivityAsync<Product>(
-                nameof(PostProcessAsync),
+                _post_processor_name_,
                 product,
-                GetOptions(isDisrupted: product.IsDisrupted)
+                (await GetRetryOptionsAsync(_post_processor_name_, product))
                     .WithInstanceId($"{context.InstanceId})-post")
             );
             if (product.LastState == ActivityState.Failed)
