@@ -35,7 +35,7 @@ public static class TestOrchestration
     [Function(nameof(RunTestOrchestrator))]
     public static async Task<string> RunTestOrchestrator(
         [OrchestrationTrigger] TaskOrchestrationContext context
-    )
+    ) 
     {
         ILogger logger = context.CreateReplaySafeLogger(nameof(RunTestOrchestrator));
 
@@ -126,14 +126,14 @@ public static class TestOrchestration
 
         var product = new Product();
         product.LastState = ActivityState.Ready;
-        product.Payload.Name = inputData?.Name ?? "";
+        product.Name = inputData?.Name ?? "";
         product.OperationName = inputData?.Name ?? "";
-        product.Payload.UniqueKey = inputData?.UniqueKey ?? "";
+        product.UniqueKey = inputData?.UniqueKey ?? "";
         product.Disruptions = inputData?.Disruptions ?? new string[0];
         StartOrchestrationOptions options = new StartOrchestrationOptions
         {
             InstanceId =
-                $"Main-{inputData.Name}-{inputData.UniqueKey}-{DateTime.UtcNow:yy-MM-ddThh:hh:ss:fff}"
+                $"Main-{inputData?.Name}-{inputData?.UniqueKey}-{DateTime.UtcNow:yy-MM-ddThh:hh:ss:fff}"
         };
         string instanceId = await client.ScheduleNewOrchestrationInstanceAsync(
             nameof(RunTestOrchestrator),

@@ -12,22 +12,26 @@ public class Product
 {
     public Product()
     {
-        Payload = new Payload();
+            
     }
+    [JsonPropertyName("UniqueKey")]
+    public string UniqueKey { get; set; } = "";
+    [JsonPropertyName("Name")]
+    public string Name { get; set; } = "";
     [JsonPropertyName("OperationName")]
     public string OperationName { get; set; } = "";
     [JsonPropertyName("ActivityName")]
     public string ActivityName { get; set; } = "";
-    [JsonPropertyName("PayLoad")]
-    public Payload Payload { get; set; }
+    [JsonPropertyName("Content")]
+    public object? Content { get; set; }
     [JsonPropertyName("LastState")]
     public ActivityState LastState { get; set; } = ActivityState.unknown;
     [JsonPropertyName("ActivityHistory")]
     public List<ActivityRecord> ActivityHistory { get; set; } = new List<ActivityRecord>();
     [JsonIgnore()]
-    public bool IsDisrupted => Disruptions.Length > 0 || NextDisruption.Length > 0; 
+    public bool IsDisrupted => Disruptions.Length > 0 || NextDisruption.Length > 0;
     [JsonPropertyName("Errors")]
-    public string Errors { get; set; }  = "";
+    public string Errors { get; set; } = "";
     [JsonPropertyName("InstanceId")]
     public string InstanceId { get; set; } = "";
     [JsonPropertyName("Disruptions")]
@@ -44,7 +48,6 @@ public class Product
     }
     [JsonPropertyName("NextTimeout")]
     public TimeSpan NextTimeout { get; set; } = TimeSpan.Zero;
-
     /// <summary>
     /// Pops the next disruption (or an empty string) off the disruptions stack
     /// into the NextDisruption variable. Need to call once per cycle.
@@ -57,14 +60,7 @@ public class Product
             NextDisruption = "";
         else
         {
-            // if (Disruptions[0].Length == 0)
-            // {
-            //     NextDisruption = Disruption.Pass.ToString();
-            // }
-            // else
-            // {
-                NextDisruption = Disruptions[0];
-            // }
+            NextDisruption = Disruptions[0];
             string[] temp = new string[Disruptions.Length - 1];
             string result = Disruptions[0];
             for (int i = 0; i < temp.Length; i++)

@@ -32,7 +32,7 @@ public static class BaseActivities
     internal const string _finish_processor_name_ = nameof(FinishAsync);
     internal const string _sub_orchestration_name_ = "default";
 
-    internal static async Task<TaskOptions> GetRetryOptionsAsync(string activityName, Product product)
+    internal static async Task<TaskOptions> GetRetryOptionsAsync(string activityName, Product product) 
     {
         if (product.IsDisrupted)
         {
@@ -80,10 +80,10 @@ public static class BaseActivities
         //string activityName, // this is the name of the required activity as seen by the Orchestration framework
         Product product, // this contains the inbound data
         FunctionContext context
-    )
+    ) 
     {
         string iid = context.InvocationId.Substring(0, 8);
-        var uniqueKey = product.Payload.UniqueKey;
+        var uniqueKey = product.UniqueKey;
         if (uniqueKey.Length == 0)
         { // this can occur when an exception is thrown in the orchestrator
             // we want to just ignore this completely.
@@ -150,7 +150,7 @@ public static class BaseActivities
         else
         {
             //! current.MarkStartTime();
-            current.ProcessId = $"{Environment.CurrentManagedThreadId}"; //|{product.Payload.Id}";
+            current.ProcessId = $"{Environment.CurrentManagedThreadId}"; 
         }
         switch (current.State)
         {
@@ -250,10 +250,10 @@ public static class BaseActivities
     public static async Task<Product> PostProcessAsync(
         [ActivityTrigger] Product product,
         FunctionContext context
-    )
+    ) 
     {
         string iid = context.InvocationId.Substring(0, 8);
-        var uniqueKey = product.Payload.UniqueKey;
+        var uniqueKey = product.UniqueKey;
         var current = await _store.ReadActivityStateAsync(uniqueKey);
         ; // POSTPROCESS
         current.State = product.LastState;
@@ -267,7 +267,6 @@ public static class BaseActivities
                 current.AddTrace(
                     $"{current.ActivityName} activity timed out after {current.RetryCount} {(current.RetryCount == 1 ? "retry" : "retries")}."
                 );
-                // current.TimestampRecord_UpdateProductStateHistory(product);
                 await _store.WriteActivityStateAsync(current);
                 throw new FlowManagerRecoverableException(
                     $"Activity {current.ActivityName} timed out."
@@ -312,14 +311,13 @@ public static class BaseActivities
     public static async Task<Product> FinishAsync(
         [ActivityTrigger] Product product,
         FunctionContext context
-    )
+    ) 
     {
-        var uniqueKey = product.Payload.UniqueKey;
+        var uniqueKey = product.UniqueKey;
         string iid = context.InvocationId.Substring(0, 8);
         var current = await _store.ReadActivityStateAsync(uniqueKey);
         
         ; // FINISH
-       // current.TimestampRecord_UpdateProductStateHistory(product);
         if (
             current.State == ActivityState.Completed && product.ActivityName == current.ActivityName
         )
@@ -332,7 +330,6 @@ public static class BaseActivities
             current.State = ActivityState.Unsuccessful;
             current.AddTrace("(Final) Completed unsuccessfully");
         }
-        //current.SequenceNumber++;
         current.TimestampRecord_UpdateProductStateHistory(product);
         current.AddTrace($"Output: {product.Output}");
         await _store.WriteActivityStateAsync(current);
@@ -340,9 +337,9 @@ public static class BaseActivities
     }
 
     //[DebuggerStepThrough]
-    internal async static Task<Product> InjectEmulations(Product product)
+    internal async static Task<Product> InjectEmulations(Product product) 
     {
-        var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
+        var current = await _store.ReadActivityStateAsync(product.UniqueKey);
         if (current.State == ActivityState.Stuck || current.State == ActivityState.Stalled)
         { // Either of these will mean that the product was never returned,
             // because an exception was thrown, so the last disruption is still stacked.
@@ -394,7 +391,7 @@ public static class BaseActivities
     }
 
     //[DebuggerStepThrough]
-    private static bool AreResourcesStressed(Product product)
+    private static bool AreResourcesStressed(Product product) 
     {
         if (MatchesDisruption(product.NextDisruption, Disruption.Choke))
         {
@@ -408,12 +405,12 @@ public static class BaseActivities
     internal static async Task<Product> Process(
         Func<Product, Task<Product>> activity,
         Product product
-    )
+    ) 
     {
         try
         {
             var timeout = product.NextTimeout;
-            var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
+            var current = await _store.ReadActivityStateAsync(product.UniqueKey);
             bool fakeStuck = false;
             product = await InjectEmulations(product);
             if (product.LastState == ActivityState.Failed)
@@ -456,7 +453,7 @@ public static class BaseActivities
         }
         catch (FlowManagerRecoverableException ex)
         {
-            var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
+            var current = await _store.ReadActivityStateAsync(product.UniqueKey);
             if (product.LastState == ActivityState.Stuck)
             {
                 current.State = ActivityState.Stuck;

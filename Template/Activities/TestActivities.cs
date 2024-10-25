@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 // TODO: Refactor this class to be non-static and deterministic:
 /* NOTE: These test activities differ only in the calls that are made. */
-/* Because each activity is of the form Action(Product, Product), */
+/* Because each activity is of the form Func(Product, Product), */
 /* it is possible to refactor this class into a non-static class */
 /* using a deterministic constructor to inject the activity name */
 /* and the function delegate: such a class would need to be totally */
@@ -34,7 +34,7 @@ public static class TestActivities
     // 4. Update the Errors property as needed
     // 5. Return the processed product
 
-    private static async Task<Product> ExecuteAlpha(Product product)
+    private static async Task<Product> ExecuteAlpha(Product product) 
     {
         // PRODUCT PROCESSING //////////////////////////////////////////////////////////////////
         await Task.Delay(_tiny_delay);
@@ -43,8 +43,7 @@ public static class TestActivities
         // PRODUCT NOW PROCESSED. //////////////////////////////////////////////////////////////
         return product;
     }
-
-    private static async Task<Product> ExecuteBravo(Product product)
+    private static async Task<Product> ExecuteBravo(Product product) 
     {
         // PRODUCT PROCESSING //////////////////////////////////////////////////////////////////
         await Task.Delay(_tiny_delay);
@@ -53,8 +52,8 @@ public static class TestActivities
         // PRODUCT NOW PROCESSED. //////////////////////////////////////////////////////////////
         return product;
     }
-
-    private static async Task<Product> ExecuteCharlie(Product product)
+   
+    private static async Task<Product> ExecuteCharlie(Product product) 
     {
         // PRODUCT PROCESSING //////////////////////////////////////////////////////////////////
         await Task.Delay(_tiny_delay);
@@ -82,7 +81,7 @@ public static class TestActivities
     public static async Task<Product> ActivityAlpha(
         [ActivityTrigger] Product product,
         FunctionContext context
-    )
+    ) 
     {
         return await Process(ExecuteAlpha, product);
     }
@@ -98,7 +97,7 @@ public static class TestActivities
     public static async Task<Product> ActivityCharlie(
         [ActivityTrigger] Product product,
         FunctionContext context
-    )
+    )  
     {
          return await Process(ExecuteCharlie, product);
     } 

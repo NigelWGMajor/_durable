@@ -34,7 +34,7 @@ public static class SubOrchestrationCharlie // rename this and the file to match
         );
         if (product.LastState == ActivityState.Deferred)
         {
-            var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
+            var current = await _store.ReadActivityStateAsync(product.UniqueKey);
             await context.CreateTimer(Settings.WaitTime, CancellationToken.None);
             await _store.WriteActivityStateAsync(current);
             product.LastState = ActivityState.unknown;
