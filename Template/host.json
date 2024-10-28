@@ -11,8 +11,11 @@
   },
   "extensions": {
     "durableTask": {
-      "maxConcurrentActivityFunctions": 10,
-      "maxConcurrentOrchestratorFunctions": 10
-    }
-  }
+      "maxConcurrentActivityFunctions": 20,
+      "maxConcurrentOrchestratorFunctions": 20,
+      "extendedSessionsEnabled": true,
+      "extendedSessionIdleTimeoutInSeconds": 3600 
+      }
+    },
+  "functionTimeout": "01:00:00"  
 }

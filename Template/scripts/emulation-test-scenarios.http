@@ -45,9 +45,6 @@ Content-Type: application/json
     "name":"Normal_operation_should_finish_successfully", 
     "uniqueKey":"1001"
 }
-/*
-### parallel
-*/
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -56,9 +53,6 @@ Content-Type: application/json
     "name":"Parallel_operation_should_finish_successfully", 
     "uniqueKey":"1002"
 }
-/*
-### Re-entrant
-*/
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -67,9 +61,6 @@ Content-Type: application/json
     "name":"Normal_operation_should_finish_successfully_despite_reentrant_calls", 
     "uniqueKey":"1003"
 }
-/*
-
-*/
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -78,9 +69,6 @@ Content-Type: application/json
     "name":"Redundant_operation_call_should_be_ignored", 
     "uniqueKey":"1003"
 }
-/*
-### Wait
-*/
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -92,9 +80,6 @@ Content-Type: application/json
         "Wait"
     ]
 }
-/*
-### Crash
-*/
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -106,10 +91,6 @@ Content-Type: application/json
         "Crash" 
     ]
 }
-/*
-### Pass
-
-*/
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -122,10 +103,6 @@ Content-Type: application/json
         "Pass" 
     ]
 }
-/*
-### Stall
-
-*/
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -140,9 +117,6 @@ Content-Type: application/json
         "Stall"
     ]
 }
-/*
-### Fail
-*/
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -155,10 +129,6 @@ Content-Type: application/json
         "Fail"
     ]
 }
-/*
-### Drag
-
-*/
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -170,9 +140,6 @@ Content-Type: application/json
         "Drag"
     ]
 }
-/*
-
-*/
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -181,9 +148,6 @@ Content-Type: application/json
     "name":"Reentrant_call_during_drag_should_become_redundant", 
     "uniqueKey":"2015"
 }
-/*
-### Stick
-*/
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -195,11 +159,6 @@ Content-Type: application/json
         "Stick"
     ]
 }
-/*
-### Choke
-
-Should delay for resources.
-*/
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -211,25 +170,19 @@ Content-Type: application/json
         "Choke"
     ]
 }
-/*
-### Previously Unsuccessful
-*/
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
     "name":"Call_to_previously_unsuccessful_should_become_redundant", 
-    "uniqueKey":"2014"
+    "uniqueKey":"2011"
 }
-/*
-### Previously Successful
-*/
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
     "name":"Call_to_previously_successful_should_become_redundant", 
-    "uniqueKey":"2014"
+    "uniqueKey":"1002"
 }
