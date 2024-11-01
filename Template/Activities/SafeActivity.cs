@@ -1,8 +1,12 @@
 using Degreed.SafeTest;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Primitives;
 
 public class SafeActivity
 {
+
+    //! temp
+    static int serial = 0;
     private Product _product;
     private Func<Product, Task<Product>> _executable;
     private static DataStore _store = new DataStore("");
@@ -36,17 +40,18 @@ public class SafeActivity
             return _product;
         try
         {
-            while (_current.State != ActivityState.Active)
+            do
             {
                 await PreProcess();
                 if (_product.IsRedundant)
                     return _product;
                 if (_current.State == ActivityState.Active)
                 {
+                    _current.SequenceNumber++;
                     await Process();
+                    return _product; // happy path!
                 }
-            }
-            await _store.WriteActivityStateAsync(_current);
+            } while (_current.State != ActivityState.Active);
             return _product;
         }
         catch (FlowManagerRecoverableException ex)
@@ -81,8 +86,17 @@ public class SafeActivity
 
     private async Task PreProcess()
     {
+        if (_product.IsRedundant)
+            return;
         _current = await _store.ReadActivityStateAsync(_product.Payload.UniqueKey);
-
+        if (!string.IsNullOrEmpty(_current.InstanceId) && _product.InstanceId != _current.InstanceId)
+        {
+            _current.SequenceNumber++;
+            _current.AddTrace($"Re-entrant call on {_current.State} rejected.");
+            _product.IsRedundant = true;
+            await _store.WriteActivityStateAsync(_current);
+            return;
+        }
         switch (_current.State)
         {
             case ActivityState.unknown:
@@ -91,6 +105,8 @@ public class SafeActivity
                 _current.SequenceNumber = 0;
                 _current.State = ActivityState.Ready;
                 _current.Disruptions = _product.Disruptions;
+                if (string.IsNullOrEmpty(_current.InstanceId))
+                    _current.InstanceId = _product.InstanceId;
                 _current.AddTrace(
                     $"New {_current.OperationName} {string.Join('|', _current.Disruptions)}."
                 );
@@ -101,12 +117,17 @@ public class SafeActivity
                 _current.AddTrace($"Was {_current.State} now ready (available to process).");
                 _current.State = ActivityState.Ready;
                 break;
+            case ActivityState.Completed:
+                _current.SequenceNumber++;
+                _current.ActivityName = _product.ActivityName;
+                _current.AddTrace($"Was {_current.State} now ready (available to process).");
+                _current.State = ActivityState.Ready;
+                break;
             case ActivityState.Ready:
                 _current.SequenceNumber++;
                 _current.AddTrace($"Was {_current.State} now active (being processed).");
                 _current.State = ActivityState.Active;
                 break;
-            case ActivityState.Completed:
             case ActivityState.Failed:
             case ActivityState.Successful:
             case ActivityState.Unsuccessful:
@@ -124,6 +145,8 @@ public class SafeActivity
 
     private async Task Process()
     {
+        if (_product.IsRedundant)
+            return;
         // set up parallel timer
         var settings = await _store.ReadActivitySettingsAsync(_current.ActivityName);
         var timeout = settings.ActivityTimeout.GetValueOrDefault(1.0);
@@ -140,6 +163,8 @@ public class SafeActivity
                 throw new FlowManagerRecoverableException("Activity timed out.");
             }
             _product = await executionTask;
+            _current.AddTrace($"Activity completed successfully.");
+            _current.MarkEndTime();
             _current.State = ActivityState.Completed;
         }
         catch (FlowManagerRecoverableException ex)

@@ -7,7 +7,7 @@ using Microsoft.Identity.Client;
 using Microsoft.Net.Http.Headers;
 using Models;
 
-[DebuggerStepThrough]
+//[DebuggerStepThrough]
 public class Product
 {
     public Product()
@@ -32,7 +32,7 @@ public class Product
     public string InstanceId { get; set; } = "";
     [JsonPropertyName("Disruptions")]
     public string[] Disruptions { get; set; } = [];
-    [JsonPropertyName("NextDisruption")]
+    [JsonPropertyName("NextDisruption")]//
     public string NextDisruption { get; set; } = "";
     [JsonPropertyName("Output")]
     public string Output { get; set; } = "";

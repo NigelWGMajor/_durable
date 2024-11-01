@@ -3,6 +3,7 @@ using Degreed.SafeTest;
 using System.Diagnostics;
 using static Activities.BaseActivities;
 using System.Threading.Tasks;
+using DurableTask.Core;
 
 // TODO: Refactor this class to be non-static and deterministic:
 /* NOTE: These test activities differ only in the calls that are made. */
@@ -84,6 +85,7 @@ public static class TestActivities
         FunctionContext context
     )
     {
+        //product.InstanceId = context.InvocationId;
         return await new SafeActivity(ExecuteAlpha, product).ProcessAsync();
     }
     [Function(nameof(ActivityBravo))]
@@ -92,7 +94,8 @@ public static class TestActivities
         FunctionContext context
     )
     {
-        return await new SafeActivity(ExecuteBravo, product).ProcessAsync();;
+        //product.InstanceId = context.InvocationId;
+        return await new SafeActivity(ExecuteBravo, product).ProcessAsync();
     }
     [Function(nameof(ActivityCharlie))]
     public static async Task<Product> ActivityCharlie(
@@ -100,7 +103,8 @@ public static class TestActivities
         FunctionContext context
     )
     {
-         return await new SafeActivity(ExecuteCharlie, product).ProcessAsync();;
+        //product.InstanceId = context.InvocationId;
+         return await new SafeActivity(ExecuteCharlie, product).ProcessAsync();
     } 
     #endregion // Durable Activities
 }

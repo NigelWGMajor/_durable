@@ -183,7 +183,7 @@ create table [rpt].[OperationFlowStates](
     [RetryCount] [int] NULL,
     [Trace] [nvarchar](max) NULL,
     [Reason] [nvarchar](max) NULL,
-    [ProcessId] [nvarchar](100) NULL,
+    [InstanceId] [nvarchar](500) NULL,
     [SequenceNumber] [int] NULL,
     constraint [PK_rpt.ReportFlowStates] primary key clustered ([OperationFlowStateID] asc) with (
         pad_index = off,
@@ -213,7 +213,7 @@ create table [rpt].[OperationFlowStateHistory](
     [RetryCount] [int] null,
     [Trace] [nvarchar](max) null,
     [Reason] [nvarchar](max) null,
-    [ProcessId] [nvarchar](100) null,
+    [InstanceId] [nvarchar](500) null,
     [SequenceNumber] [int] null,
     constraint [PK_rpt.OperationFlowStateHistory] primary key clustered ([OperationFlowStateHistoryID] asc) with (
         pad_index = off,
@@ -240,7 +240,7 @@ select (
             TimeUpdated,
             Trace,
             Reason,
-            ProcessId,
+            InstanceId,
             [RetryCount],
             SequenceNumber
         from rpt.OperationFlowStates
@@ -263,7 +263,7 @@ merge rpt.OperationFlowStates as target using (
         json_value(@json, '$.ActivityStateName') as ActivityStateName,
         json_value(@json, '$.Trace') as Trace,
         json_value(@json, '$.Reason') as Reason,
-        json_value(@json, '$.ProcessId') as ProcessId,
+        json_value(@json, '$.InstanceId') as InstanceId,
         json_value(@json, '$.RetryCount') as [RetryCount],
         json_value(@json, '$.SequenceNumber') as SequenceNumber,
         @Timestamp as TimeUpdated
@@ -277,7 +277,7 @@ set OperationName = source.OperationName,
     ActivityStateName = source.ActivityStateName,
     Trace = source.Trace,
     Reason = source.Reason,
-    ProcessId = source.ProcessId,
+    InstanceId = source.InstanceId,
     SequenceNumber = source.SequenceNumber,
     [RetryCount] = source.[RetryCount],
     TimeUpdated = source.TimeUpdated -- we only save the start time in when the record is first made.
@@ -292,7 +292,7 @@ insert (
         ActivityStateName,
         Trace,
         Reason,
-        ProcessId,
+        InstanceId,
         SequenceNumber,
         TimeUpdated,
         [RetryCount]
@@ -307,7 +307,7 @@ values (
         source.ActivityStateName,
         source.Trace,
         source.Reason,
-        source.ProcessId,
+        source.InstanceId,
         source.SequenceNumber,
         source.TimeUpdated,
         source.[RetryCount]
@@ -323,7 +323,7 @@ insert into rpt.OperationFlowStateHistory (
         ActivityStateName,
         Trace,
         Reason,
-        ProcessId,
+        InstanceId,
         [RetryCount],
         SequenceNumber,
         TimeUpdated
@@ -338,7 +338,7 @@ values (
         json_value(@json, '$.ActivityStateName'),
         json_value(@json, '$.Trace'),
         json_value(@json, '$.Reason'),
-        json_value(@json, '$.ProcessId'),
+        json_value(@json, '$.InstanceId'),
         json_value(@json, '$.RetryCount'),
         json_value(@json, '$.SequenceNumber'),
         cast(@Timestamp as DateTime2)
@@ -498,6 +498,8 @@ begin
     isnull(main.PartitionId, def.PartitionId) PartitionId
   from
     def left join main on 1 = 1
+    for json auto,   
+      without_array_wrapper
 end
 go
 -- add write proc for settings
@@ -505,7 +507,7 @@ set ansi_nulls on
 go
 set quoted_identifier on
 go
-alter procedure [rpt].[ActivitySettings_Write] @json nvarchar(max) as 
+create or alter procedure [rpt].[ActivitySettings_Write] @json nvarchar(max) as 
 begin
   set nocount on;
   merge rpt.ActivitySettings as target 

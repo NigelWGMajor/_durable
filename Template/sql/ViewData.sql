@@ -8,7 +8,7 @@ SELECT TOP (1000) [OperationFlowStateID] Id
       ,[ActivityStateName] [State]
       ,[Count] [Count]
       ,[Trace] Trace
-      ,[ProcessId] Process
+      ,[InstanceId] Instance
       ,[SequenceNumber] [Sequence]
       ,[TimeStarted] [Started]
       ,[TimeEnded] [Ended]

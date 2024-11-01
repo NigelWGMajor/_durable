@@ -44,8 +44,8 @@ namespace Degreed.SafeTest
         [JsonPropertyName("Trace")]
         public string Trace { get; set; } = "";
 
-        [JsonPropertyName("ProcessId")]
-        public string ProcessId { get; set; } = "";
+        [JsonPropertyName("InstanceId")]
+        public string InstanceId { get; set; } = "";
 
         [JsonPropertyName("SequenceNumber")]
         public int SequenceNumber { get; set; }

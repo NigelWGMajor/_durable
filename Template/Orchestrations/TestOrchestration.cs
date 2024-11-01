@@ -127,6 +127,7 @@ public static class TestOrchestration
             InstanceId =
                 $"Main-{inputData?.Name}-{inputData?.UniqueKey}-{DateTime.UtcNow:yy-MM-ddThh:hh:ss:fff}"
         };
+        product.InstanceId = options.InstanceId;
         string instanceId = await client.ScheduleNewOrchestrationInstanceAsync(
             nameof(RunTestOrchestrator),
             product,

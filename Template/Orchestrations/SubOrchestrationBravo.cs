@@ -26,7 +26,7 @@ public static class SubOrchestrationBravo // rename this and the file to match t
         ILogger logger = context.CreateReplaySafeLogger(_orchestration_name_);
         Product product = context.GetInput<Product>() ?? new Product();
         product.ActivityName = _operation_name_;
-        product.InstanceId = context.InstanceId;
+        //product.InstanceId = context.InstanceId;
         // product = await context.CallActivityAsync<Product>(
         //     _pre_processor_name_,
         //     product,

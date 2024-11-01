@@ -317,6 +317,10 @@ public static class BaseActivities
         FunctionContext context
     )
     {
+        if (product.IsRedundant)
+        {
+            return product;
+        }
         var uniqueKey = product.Payload.UniqueKey;
         string iid = context.InvocationId.Substring(0, 8);
         var current = await _store.ReadActivityStateAsync(uniqueKey);
