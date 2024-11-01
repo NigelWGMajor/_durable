@@ -27,10 +27,10 @@ public static class BaseActivities
     internal static TimeSpan _short_delay = TimeSpan.FromHours(1);
     internal static TimeSpan _long_delay = TimeSpan.FromHours(12);
 
-    internal const string _pre_processor_name_ = nameof(PreProcessAsync);
-    internal const string _post_processor_name_ = nameof(PostProcessAsync);
+   // internal const string _pre_processor_name_ = nameof(PreProcessAsync);
+   // internal const string _post_processor_name_ = nameof(PostProcessAsync);
     internal const string _finish_processor_name_ = nameof(FinishAsync);
-    internal const string _sub_orchestration_name_ = "default";
+    //internal const string _sub_orchestration_name_ = "default";
 
     internal static async Task<TaskOptions> GetRetryOptionsAsync(string activityName, Product product)
     {
@@ -38,7 +38,7 @@ public static class BaseActivities
         {
             activityName = "Test";
         }
-        ActivitySettings settings = await _store.ReadActivitySettings(activityName);
+        ActivitySettings settings = await _store.ReadActivitySettingsAsync(activityName);
         product.NextTimeout = TimeSpan.FromHours(settings.ActivityTimeout.GetValueOrDefault());
         RetryPolicy policy = new RetryPolicy(
             settings.NumberOfRetries.GetValueOrDefault(),
@@ -72,7 +72,7 @@ public static class BaseActivities
     {
         return (s.ToLower() == d.ToString().ToLower());
     }
-
+/*
     //[DebuggerStepperBoundary]
     [Function(nameof(PreProcessAsync))]
     public static async Task<Product> PreProcessAsync(
@@ -95,7 +95,7 @@ public static class BaseActivities
         try
         {
             current = await _store.ReadActivityStateAsync(uniqueKey);
-            ; // PREPROCESS
+            ; // PRE-PROCESS
             if (current.State == ActivityState.Stuck || current.State == ActivityState.Stalled)
             {
                 // If the current state is Stalled or Stuck, the Product does not have the latest state, because it was never returned.
@@ -244,7 +244,9 @@ public static class BaseActivities
         }
         return product;
     }
+*/
 
+/*
     // [DebuggerStepperBoundary]
     [Function(nameof(PostProcessAsync))]
     public static async Task<Product> PostProcessAsync(
@@ -255,7 +257,7 @@ public static class BaseActivities
         string iid = context.InvocationId.Substring(0, 8);
         var uniqueKey = product.Payload.UniqueKey;
         var current = await _store.ReadActivityStateAsync(uniqueKey);
-        ; // POSTPROCESS
+        ; // POST-PROCESS
         current.State = product.LastState;
         current.TimestampRecord_UpdateProductStateHistory(product);
         switch (current.State)
@@ -306,6 +308,7 @@ public static class BaseActivities
                 return product;
         }
     }
+*/
 
     //[DebuggerStepperBoundary]
     [Function(nameof(FinishAsync))]
@@ -340,6 +343,7 @@ public static class BaseActivities
     }
 
     //[DebuggerStepThrough]
+    /*
     internal async static Task<Product> InjectEmulations(Product product)
     {
         var current = await _store.ReadActivityStateAsync(product.Payload.UniqueKey);
@@ -385,14 +389,16 @@ public static class BaseActivities
         }
         return product;
     }
-
+*/
+/*
     [DebuggerStepThrough]
     private static bool NowPastLimit(DateTime time, TimeSpan limit)
     {
         var diff = DateTime.UtcNow - time;
         return diff >= limit;
     }
-
+*/
+/*
     //[DebuggerStepThrough]
     private static bool AreResourcesStressed(Product product)
     {
@@ -404,7 +410,8 @@ public static class BaseActivities
         // you may add memory and/or cpu stress detectors here
         return false;
     }
-    
+*/
+/*    
     internal static async Task<Product> Process(
         Func<Product, Task<Product>> activity,
         Product product
@@ -472,4 +479,5 @@ public static class BaseActivities
             throw;
         }
     }
+    */
 }

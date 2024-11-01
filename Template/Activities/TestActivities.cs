@@ -25,8 +25,8 @@ public static class TestActivities
     # region Processing wrappers
 
     // // RESPONSIBILITIES:
-    // 1. Process the product asychronously
-    // 2. Traige any errors that occur
+    // 1. Process the product asynchronously
+    // 2. Triage any errors that occur
     // 3. Set product.LastState to
     //      successful: ActivityState.Completed
     //      fatal error: ActivityState.Failed
@@ -84,7 +84,7 @@ public static class TestActivities
         FunctionContext context
     )
     {
-        return await Process(ExecuteAlpha, product);
+        return await new SafeActivity(ExecuteAlpha, product).ProcessAsync();
     }
     [Function(nameof(ActivityBravo))]
     public static async Task<Product> ActivityBravo(
@@ -92,7 +92,7 @@ public static class TestActivities
         FunctionContext context
     )
     {
-        return await Process(ExecuteBravo, product);
+        return await new SafeActivity(ExecuteBravo, product).ProcessAsync();;
     }
     [Function(nameof(ActivityCharlie))]
     public static async Task<Product> ActivityCharlie(
@@ -100,7 +100,7 @@ public static class TestActivities
         FunctionContext context
     )
     {
-         return await Process(ExecuteCharlie, product);
+         return await new SafeActivity(ExecuteCharlie, product).ProcessAsync();;
     } 
     #endregion // Durable Activities
 }

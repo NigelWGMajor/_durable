@@ -44,6 +44,8 @@ public class Product
     }
     [JsonPropertyName("NextTimeout")]
     public TimeSpan NextTimeout { get; set; } = TimeSpan.Zero;
+    [JsonPropertyName("IsRedundant")]
+    public bool IsRedundant { get; set; } = false;
 
     /// <summary>
     /// Pops the next disruption (or an empty string) off the disruptions stack

@@ -17,6 +17,7 @@ public interface IDataStore
 //![DebuggerStepThrough]
 public class DataStore : IDataStore
 {
+    public bool IsValid { get; private set; }
     private readonly string _connectionString;
     private const string _read_activity_ = "rpt.OperationFlowState_Read";
     private const string _read_settings_ = "rpt.ActivitySettings_Read";
@@ -27,6 +28,8 @@ public class DataStore : IDataStore
     public DataStore(string connectionString)
     {
         _connectionString = connectionString;
+        if (_connectionString.Length != 0)
+            IsValid = true;
     }
 
     public async Task<ActivityRecord> ReadActivityStateAsync(string keyId)
@@ -68,17 +71,15 @@ public class DataStore : IDataStore
                 }
             }
             if (String.IsNullOrEmpty(json))
-                return new ActivityRecord
-                {
-                    UniqueKey = keyId,
-                    State = ActivityState.unknown
-                };
-            return JsonSerializer.Deserialize<ActivityRecord>(json) 
-               ?? new ActivityRecord();
+                return new ActivityRecord { UniqueKey = keyId, State = ActivityState.unknown };
+            return JsonSerializer.Deserialize<ActivityRecord>(json) ?? new ActivityRecord();
         }
         catch (Exception ex)
         {
-            throw new FlowManagerRecoverableException("Metadata store: Unable to read current ActivityRecord", ex);
+            throw new FlowManagerRecoverableException(
+                "Metadata store: Unable to read current ActivityRecord",
+                ex
+            );
         }
     }
 
@@ -118,11 +119,14 @@ public class DataStore : IDataStore
         }
         catch (Exception ex)
         {
-            throw new FlowManagerRecoverableException("Metadata store: Unable to write current ActivityRecord", ex);
+            throw new FlowManagerRecoverableException(
+                "Metadata store: Unable to write current ActivityRecord",
+                ex
+            );
         }
     }
 
-    public async Task WriteActivitySettings(ActivitySettings settings)
+    public async Task WriteActivitySettingsAsync(ActivitySettings settings)
     {
         await _semaphore.WaitAsync();
         try
@@ -134,6 +138,7 @@ public class DataStore : IDataStore
             _semaphore.Release();
         }
     }
+
     private async Task WriteActivitySettingsInternalAsync(ActivitySettings settings)
     {
         try
@@ -157,10 +162,14 @@ public class DataStore : IDataStore
         }
         catch (Exception ex)
         {
-            throw new FlowManagerRecoverableException("Metadata store: Unable to write current ActivitySettings", ex);
+            throw new FlowManagerRecoverableException(
+                "Metadata store: Unable to write current ActivitySettings",
+                ex
+            );
         }
     }
-    public async Task<ActivitySettings> ReadActivitySettings(string activityName)
+
+    public async Task<ActivitySettings> ReadActivitySettingsAsync(string activityName)
     {
         await _semaphore.WaitAsync();
         try
@@ -172,6 +181,7 @@ public class DataStore : IDataStore
             _semaphore.Release();
         }
     }
+
     private async Task<ActivitySettings> ReadActivitySettingsInternalAsync(string activityName)
     {
         try
@@ -185,7 +195,10 @@ public class DataStore : IDataStore
                 {
                     command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.Add(
-                        new SqlParameter("@ActivityName", SqlDbType.NVarChar, 100) { Value = activityName }
+                        new SqlParameter("@ActivityName", SqlDbType.NVarChar, 100)
+                        {
+                            Value = activityName
+                        }
                     );
 
                     using (SqlDataReader reader = await command.ExecuteReaderAsync())
@@ -198,16 +211,15 @@ public class DataStore : IDataStore
                 }
             }
             if (String.IsNullOrEmpty(json))
-                return new ActivitySettings
-                {
-                    ActivityName = activityName
-                };
-            return JsonSerializer.Deserialize<ActivitySettings>(json) 
-               ?? new ActivitySettings();
+                return new ActivitySettings { ActivityName = activityName };
+            return JsonSerializer.Deserialize<ActivitySettings>(json) ?? new ActivitySettings();
         }
         catch (Exception ex)
         {
-            throw new FlowManagerRecoverableException("Metadata store: Unable to read current ActivitySettings", ex);
+            throw new FlowManagerRecoverableException(
+                "Metadata store: Unable to read current ActivitySettings",
+                ex
+            );
         }
     }
 }

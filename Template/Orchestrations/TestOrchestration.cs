@@ -26,11 +26,13 @@ public static class TestOrchestration
     // 1. Set up the logger
     // 2. Initialize the product from the input data in the context
     // 3. For each sub-orchestration:
-    //      a. check for a crash disruption
-    //      b. set the custom status
     //      c. call the sub-orchestration asynchronously
     // 4. Call the final activity
     // 5. Set the custom status
+
+     const string _orc_a_name_ = nameof(OrchestrationAlpha);
+     const string _orc_b_name_ = nameof(OrchestrationBravo);
+     const string _orc_c_name_ = nameof(OrchestrationCharlie);
 
     [Function(nameof(RunTestOrchestrator))]
     public static async Task<string> RunTestOrchestrator(
@@ -46,55 +48,45 @@ public static class TestOrchestration
             product = Product.FromContext(context);
             product.ActivityName = nameof(ActivityAlpha);
         }
-        if (MatchesDisruption(product.NextDisruption, Models.Disruption.Crash))
-            throw new Exception("Emulated Crash in main orchestrator");
         string id = context.InstanceId;
-        int index = 3;
+        int index = 1;
         context.SetCustomStatus($"{product.LastState}{index:00}");
+        // Sub-Orchestration Alpha
         product = await context.CallSubOrchestratorAsync<Product>(
-            nameof(OrchestrationAlpha),
+           _orc_a_name_,
             product,
-            (await GetRetryOptionsAsync(_sub_orchestration_name_, product))
+            (await GetRetryOptionsAsync(_orc_a_name_, product))
             .WithInstanceId($"{id}Alpha)")
         );
-        if (MatchesDisruption(product.NextDisruption, Models.Disruption.Crash))
-            throw new Exception("Emulated Crash in main orchestrator");
-        index += 3;
-        context.SetCustomStatus($"{product.LastState}{index:00}");
-        if (product.LastState != ActivityState.Redundant)
-        {
-            product = await context.CallSubOrchestratorAsync<Product>(
-                nameof(OrchestrationBravo),
-                product,
-                (await GetRetryOptionsAsync(_sub_orchestration_name_, product))
-                .WithInstanceId($"{id}Bravo)")
-            );
-        }
-        if (MatchesDisruption(product.NextDisruption, Models.Disruption.Crash))
-            throw new Exception("Emulated Crash in main orchestrator");
-        index += 3;
-        context.SetCustomStatus($"{product.LastState}{index:00}");
-        if (product.LastState != ActivityState.Redundant)
-        {
-            product = await context.CallSubOrchestratorAsync<Product>(
-                nameof(OrchestrationCharlie),
-                product,
-                (await GetRetryOptionsAsync(_sub_orchestration_name_, product))
-                .WithInstanceId($"{id}Charlie)")
-            );
-        }
         index++;
         context.SetCustomStatus($"{product.LastState}{index:00}");
-        if (product.LastState != ActivityState.Redundant)
-        {
+        // Sub-Orchestration Bravo
+            product = await context.CallSubOrchestratorAsync<Product>(
+                _orc_b_name_,
+                product,
+                (await GetRetryOptionsAsync(_orc_b_name_, product))
+                .WithInstanceId($"{id}Bravo)")
+            );
+        index ++;
+        context.SetCustomStatus($"{product.LastState}{index:00}");
+        // Sub-Orchestration Charlie
+            product = await context.CallSubOrchestratorAsync<Product>(
+                _orc_c_name_,
+                product,
+                (await GetRetryOptionsAsync(_orc_c_name_, product))
+                .WithInstanceId($"{id}Charlie)")
+            );
+        index++;
+        // Final Activity
+        context.SetCustomStatus($"{product.LastState}{index:00}");
             product = await context.CallActivityAsync<Product>(
                 _finish_processor_name_,
                 product,
                 (await GetRetryOptionsAsync(_finish_processor_name_, product))
                 .WithInstanceId($"{id}Final)")
             );
-        }
         context.SetCustomStatus($"{product.LastState}{index++:00}");
+            
         Console.WriteLine($"**\r\n*** Ended Main Orchestration as {product.LastState} \r\n**");
         return JsonSerializer.Serialize(product.ActivityHistory, _jsonOptions);
     }
@@ -133,7 +125,7 @@ public static class TestOrchestration
         StartOrchestrationOptions options = new StartOrchestrationOptions
         {
             InstanceId =
-                $"Main-{inputData.Name}-{inputData.UniqueKey}-{DateTime.UtcNow:yy-MM-ddThh:hh:ss:fff}"
+                $"Main-{inputData?.Name}-{inputData?.UniqueKey}-{DateTime.UtcNow:yy-MM-ddThh:hh:ss:fff}"
         };
         string instanceId = await client.ScheduleNewOrchestrationInstanceAsync(
             nameof(RunTestOrchestrator),

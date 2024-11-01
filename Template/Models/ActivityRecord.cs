@@ -55,12 +55,16 @@ namespace Degreed.SafeTest
 
         [JsonPropertyName("Reason")]
         public string Reason { get; set; } = "";
+
+        [JsonPropertyName("Disruptions")]
+        public string[] Disruptions { get; set; } = new string[] { };
     }
 
     [DebuggerStepThrough]
     public static class ActivityRecordExtender
     {
         private static readonly string _eol_ = "|";
+
         public static void MarkStartTime(this ActivityRecord record)
         {
             record.TimeStarted = DateTime.UtcNow;
@@ -74,14 +78,44 @@ namespace Degreed.SafeTest
         public static void AddTrace(this ActivityRecord record, string message)
         {
             record.Reason = message;
-            record.Trace = $"{record.Trace}{_eol_}[{record.SequenceNumber}]:{message}({record.TimeEnded-record.TimeStarted})";
+            record.Trace =
+                $"{record.Trace}{_eol_}[{record.SequenceNumber}]:{message}({record.TimeEnded - record.TimeStarted})";
         }
+
+        public static string PopDisruption(this ActivityRecord record)
+        {
+            if (record.Disruptions.Length == 0)
+                return "";
+            else
+            {
+                var temp = record.Disruptions[0];
+                for (int i = 0; i < record.Disruptions.Length - 1; i++)
+                {
+                    record.Disruptions[i] = record.Disruptions[i + 1];
+                }
+                return temp;
+            }
+        }
+
+        public static string PeekDisruption(this ActivityRecord record)
+        {
+            if (record.Disruptions.Length == 0)
+                return "";
+            else
+            {
+                return record.Disruptions[0];
+            }
+        }
+
         /// <summary>
         /// Update the product LastSate and history using this ActivityRecord.
         /// </summary>
         /// <param name="record"></param>
         /// <param name="product"></param>
-        public static void TimestampRecord_UpdateProductStateHistory(this ActivityRecord record, Product product)
+        public static void TimestampRecord_UpdateProductStateHistory(
+            this ActivityRecord record,
+            Product product
+        )
         {
             record.MarkEndTime();
             record.SequenceNumber++;
