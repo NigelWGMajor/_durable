@@ -4,9 +4,7 @@ using Microsoft.Extensions.Primitives;
 
 public class SafeActivity
 {
-
     //! temp
-    static int serial = 0;
     private Product _product;
     private Func<Product, Task<Product>> _executable;
     private static DataStore _store = new DataStore("");
@@ -29,7 +27,7 @@ public class SafeActivity
             if (temp != null)
                 _store = new DataStore(temp);
             else
-                throw new FlowManagerRecoverableException("MetadataStore connection not provided");
+                throw new FlowManagerInfraException("MetadataStore connection not provided");
         }
     }
 
@@ -38,6 +36,7 @@ public class SafeActivity
         // quick kill if redundant
         if (_product.IsRedundant)
             return _product;
+
         try
         {
             do
@@ -57,29 +56,25 @@ public class SafeActivity
         catch (FlowManagerRecoverableException ex)
         {
             _current.RetryCount++;
-            _current.Reason = ex.Message;
-            _current.AddTrace($"Recoverable error encountered!");
+            _current.AddTrace($"Recoverable error encountered! {ex.Message}");
             throw;
         }
         catch (FlowManagerFatalException ex)
         {
             _current.RetryCount++;
-            _current.Reason = ex.Message;
-            _current.AddTrace($"Fatal error encountered!");
+            _current.AddTrace($"Fatal error encountered! {ex.Message}");
             throw;
         }
         catch (FlowManagerInfraException ex)
         {
             _current.RetryCount++;
-            _current.Reason = ex.Message;
-            _current.AddTrace($"Infrastructure error encountered!");
+            _current.AddTrace($"Infrastructure error encountered! {ex.Message}");
             throw;
         }
         catch (Exception ex)
         {
             _current.RetryCount++;
-            _current.Reason = ex.Message;
-            _current.AddTrace($"Unknown exception encountered!");
+            _current.AddTrace($"Unknown exception encountered! {ex.Message}");
             throw new FlowManagerRecoverableException($"Unknown: {ex.Message}");
         }
     }
@@ -89,13 +84,24 @@ public class SafeActivity
         if (_product.IsRedundant)
             return;
         _current = await _store.ReadActivityStateAsync(_product.Payload.UniqueKey);
-        if (!string.IsNullOrEmpty(_current.InstanceId) && _product.InstanceId != _current.InstanceId)
+        if (
+            !string.IsNullOrEmpty(_current.InstanceId) && _product.InstanceId != _current.InstanceId
+        )
         {
             _current.SequenceNumber++;
             _current.AddTrace($"Re-entrant call on {_current.State} rejected.");
             _product.IsRedundant = true;
             await _store.WriteActivityStateAsync(_current);
             return;
+        }
+        // wait disruption    
+        if (_current.NextDisruptionIs(Models.Disruption.Wait))
+        {
+            _current.PopDisruption();
+            _current.State = ActivityState.Deferred;
+            _current.AddTrace("Activity deferred (emulated).");
+            await _store.WriteActivityStateAsync(_current);
+            throw new FlowManagerInfraException("Activity deferred.");
         }
         switch (_current.State)
         {
@@ -104,11 +110,11 @@ public class SafeActivity
                 _current.OperationName = _product.OperationName;
                 _current.SequenceNumber = 0;
                 _current.State = ActivityState.Ready;
-                _current.Disruptions = _product.Disruptions;
+                _current.DisruptionArray = (string[])_product.Disruptions.Clone();
                 if (string.IsNullOrEmpty(_current.InstanceId))
                     _current.InstanceId = _product.InstanceId;
                 _current.AddTrace(
-                    $"New {_current.OperationName} {string.Join('|', _current.Disruptions)}."
+                    $"New {_current.OperationName} {_current.Disruptions}."
                 );
                 break;
             case ActivityState.Deferred:
@@ -171,33 +177,29 @@ public class SafeActivity
         {
             _current.State = ActivityState.Stalled;
             _current.RetryCount++;
-            _current.Reason = ex.Message;
-            _current.AddTrace($"Recoverable error encountered!");
+            _current.AddTrace($"Recoverable error encountered! {ex.Message}");
             throw;
         }
         catch (FlowManagerFatalException ex)
         {
             _current.State = ActivityState.Failed;
             _current.RetryCount++;
-            _current.Reason = ex.Message;
-            _current.AddTrace($"Fatal error encountered!");
+            _current.AddTrace($"Fatal error encountered! {ex.Message}");
             throw;
         }
         catch (FlowManagerInfraException ex)
         {
             _current.State = ActivityState.Deferred;
             _current.RetryCount++;
-            _current.Reason = ex.Message;
-            _current.AddTrace($"Infrastructure error encountered!");
+            _current.AddTrace($"Infrastructure error encountered! {ex.Message}");
             throw;
         }
         catch (Exception ex)
         {
             _current.State = ActivityState.Stalled;
             _current.RetryCount++;
-            _current.Reason = ex.Message;
             _current.AddTrace($"Unknown exception encountered!");
-            throw new FlowManagerRecoverableException($"Unknown: {ex.Message}");
+            throw new FlowManagerRecoverableException($"Unknown: {ex.Message} {ex.Message}");
         }
         finally
         {

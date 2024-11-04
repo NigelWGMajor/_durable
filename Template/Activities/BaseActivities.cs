@@ -31,7 +31,7 @@ public static class BaseActivities
    // internal const string _post_processor_name_ = nameof(PostProcessAsync);
     internal const string _finish_processor_name_ = nameof(FinishAsync);
     //internal const string _sub_orchestration_name_ = "default";
-
+    [DebuggerStepThrough]
     internal static async Task<TaskOptions> GetRetryOptionsAsync(string activityName, Product product)
     {
         if (product.IsDisrupted)

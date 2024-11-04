@@ -30,9 +30,28 @@ public static class TestOrchestration
     // 4. Call the final activity
     // 5. Set the custom status
 
-     const string _orc_a_name_ = nameof(OrchestrationAlpha);
-     const string _orc_b_name_ = nameof(OrchestrationBravo);
-     const string _orc_c_name_ = nameof(OrchestrationCharlie);
+    const string _orc_a_name_ = nameof(OrchestrationAlpha);
+    const string _orc_b_name_ = nameof(OrchestrationBravo);
+    const string _orc_c_name_ = nameof(OrchestrationCharlie);
+
+    const string _infra_settings_name_ = "Infra";
+    const string _infra_test_settings_name_ = "InfraTest";
+
+    public static bool ShouldRetry(Exception ex)
+    {
+        return (ex is FlowManagerInfraException);
+    }
+
+    public static async Task<TaskOptions> GetLocalRetryOptionsAsync(
+        string activityName,
+        Product product
+    )
+    {
+        string settingsName = product.IsDisrupted
+            ? _infra_test_settings_name_
+            : _infra_settings_name_;
+        return await GetRetryOptionsAsync(settingsName, product);
+    }
 
     [Function(nameof(RunTestOrchestrator))]
     public static async Task<string> RunTestOrchestrator(
@@ -52,41 +71,73 @@ public static class TestOrchestration
         int index = 1;
         context.SetCustomStatus($"{product.LastState}{index:00}");
         // Sub-Orchestration Alpha
-        product = await context.CallSubOrchestratorAsync<Product>(
-           _orc_a_name_,
-            product,
-            (await GetRetryOptionsAsync(_orc_a_name_, product))
-            .WithInstanceId($"{id}Alpha)")
-        );
+        try
+        {
+            product = await context.CallSubOrchestratorAsync<Product>(
+                _orc_a_name_,
+                product,
+                (await GetLocalRetryOptionsAsync(_orc_a_name_, product)).WithInstanceId(
+                    $"{id}Alpha)"
+                )
+            );
+        }
+        catch (FlowManagerInfraException)
+        {
+            throw;
+        }
         index++;
         context.SetCustomStatus($"{product.LastState}{index:00}");
         // Sub-Orchestration Bravo
+        try
+        {
             product = await context.CallSubOrchestratorAsync<Product>(
                 _orc_b_name_,
                 product,
-                (await GetRetryOptionsAsync(_orc_b_name_, product))
-                .WithInstanceId($"{id}Bravo)")
+                (await GetLocalRetryOptionsAsync(_orc_b_name_, product)).WithInstanceId(
+                    $"{id}Bravo)"
+                )
             );
-        index ++;
+        }
+        catch (FlowManagerInfraException)
+        {
+            throw;
+        }
+        index++;
         context.SetCustomStatus($"{product.LastState}{index:00}");
         // Sub-Orchestration Charlie
+        try
+        {
             product = await context.CallSubOrchestratorAsync<Product>(
                 _orc_c_name_,
                 product,
-                (await GetRetryOptionsAsync(_orc_c_name_, product))
-                .WithInstanceId($"{id}Charlie)")
+                (await GetLocalRetryOptionsAsync(_orc_c_name_, product)).WithInstanceId(
+                    $"{id}Charlie)"
+                )
             );
+        }
+        catch (FlowManagerInfraException)
+        {
+            throw;
+        }
         index++;
         // Final Activity
         context.SetCustomStatus($"{product.LastState}{index:00}");
-            product = await context.CallActivityAsync<Product>(
-                _finish_processor_name_,
-                product,
-                (await GetRetryOptionsAsync(_finish_processor_name_, product))
-                .WithInstanceId($"{id}Final)")
-            );
+        try 
+        {
+        product = await context.CallActivityAsync<Product>(
+            _finish_processor_name_,
+            product,
+            (await GetRetryOptionsAsync(_finish_processor_name_, product)).WithInstanceId(
+                $"{id}Final)"
+            )
+        );
+                }
+        catch (FlowManagerInfraException)
+        {
+            throw;
+        }
         context.SetCustomStatus($"{product.LastState}{index++:00}");
-            
+
         Console.WriteLine($"**\r\n*** Ended Main Orchestration as {product.LastState} \r\n**");
         return JsonSerializer.Serialize(product.ActivityHistory, _jsonOptions);
     }
@@ -135,7 +186,7 @@ public static class TestOrchestration
             CancellationToken.None
         );
         logger.LogInformation("Started orchestration with ID = '{instanceId}'.", instanceId);
-        var response =  req.CreateResponse(System.Net.HttpStatusCode.Accepted);
+        var response = req.CreateResponse(System.Net.HttpStatusCode.Accepted);
         await response.WriteAsJsonAsync(new { instanceId });
         return response;
     }

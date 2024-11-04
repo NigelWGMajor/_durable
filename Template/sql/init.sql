@@ -126,6 +126,13 @@ if exists(
             and TABLE_SCHEMA = 'rpt'
     ) drop table [rpt].OperationFlowStateHistory;
 go
+if exists(
+        select *
+        from INFORMATION_SCHEMA.TABLES
+        where TABLE_NAME = 'ActivitySettings'
+            and TABLE_SCHEMA = 'rpt'
+    ) drop table [rpt].ActivitySettings;
+go
  -- create FlowStates table to define friendly names of allowed states
 print '*** Creating FlowStates table'
 go
@@ -185,6 +192,7 @@ create table [rpt].[OperationFlowStates](
     [Reason] [nvarchar](max) NULL,
     [InstanceId] [nvarchar](500) NULL,
     [SequenceNumber] [int] NULL,
+    [Disruptions] nvarchar(max) null
     constraint [PK_rpt.ReportFlowStates] primary key clustered ([OperationFlowStateID] asc) with (
         pad_index = off,
         statistics_norecompute = off,
@@ -215,6 +223,7 @@ create table [rpt].[OperationFlowStateHistory](
     [Reason] [nvarchar](max) null,
     [InstanceId] [nvarchar](500) null,
     [SequenceNumber] [int] null,
+    [Disruptions] nvarchar(max) null
     constraint [PK_rpt.OperationFlowStateHistory] primary key clustered ([OperationFlowStateHistoryID] asc) with (
         pad_index = off,
         statistics_norecompute = off,
@@ -242,7 +251,8 @@ select (
             Reason,
             InstanceId,
             [RetryCount],
-            SequenceNumber
+            SequenceNumber,
+            Disruptions
         from rpt.OperationFlowStates
         where UniqueKey = @UniqueKey for json path,
             without_array_wrapper
@@ -266,6 +276,7 @@ merge rpt.OperationFlowStates as target using (
         json_value(@json, '$.InstanceId') as InstanceId,
         json_value(@json, '$.RetryCount') as [RetryCount],
         json_value(@json, '$.SequenceNumber') as SequenceNumber,
+        json_value(@json, '$.Disruptions') as Disruptions,
         @Timestamp as TimeUpdated
 ) as source on (target.UniqueKey = source.UniqueKey)
 when matched then
@@ -280,8 +291,9 @@ set OperationName = source.OperationName,
     InstanceId = source.InstanceId,
     SequenceNumber = source.SequenceNumber,
     [RetryCount] = source.[RetryCount],
+    Disruptions = source.Disruptions,
     TimeUpdated = source.TimeUpdated -- we only save the start time in when the record is first made.
-    when not matched then
+when not matched then
 insert (
         UniqueKey,
         OperationName,
@@ -294,6 +306,7 @@ insert (
         Reason,
         InstanceId,
         SequenceNumber,
+        Disruptions,
         TimeUpdated,
         [RetryCount]
     )
@@ -309,6 +322,7 @@ values (
         source.Reason,
         source.InstanceId,
         source.SequenceNumber,
+        source.Disruptions,
         source.TimeUpdated,
         source.[RetryCount]
     );
@@ -326,6 +340,7 @@ insert into rpt.OperationFlowStateHistory (
         InstanceId,
         [RetryCount],
         SequenceNumber,
+        Disruptions,
         TimeUpdated
     )
 values (
@@ -341,6 +356,7 @@ values (
         json_value(@json, '$.InstanceId'),
         json_value(@json, '$.RetryCount'),
         json_value(@json, '$.SequenceNumber'),
+        json_value(@json, '$.Disruptions'),
         cast(@Timestamp as DateTime2)
     )
 if (json_value(@json, '$.ActivityState') > 8)
@@ -442,11 +458,19 @@ insert [rpt].[ActivitySettings]
   ([ActivitySettingsId], [ActivityName], [NumberOfRetries], [InitialDelay], [BackOffCoefficient], 
   [MaximumDelay], [RetryTimeout], [ActivityTimeout], [IsIOIntensive], [IsMemoryIntensive], [PartitionId]) 
 values (8, N'FinishAsync', 8, 0.1, 1.4142, null, 24, null, null, null, null)
+insert [rpt].[ActivitySettings] 
+  ([ActivitySettingsId], [ActivityName], [NumberOfRetries], [InitialDelay], [BackOffCoefficient], 
+  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [IsIOIntensive], [IsMemoryIntensive], [PartitionId]) 
+values (9, N'Infra', 10, 0.25, 1, 0.25, 24, null, null, null, null)
+insert [rpt].[ActivitySettings] 
+  ([ActivitySettingsId], [ActivityName], [NumberOfRetries], [InitialDelay], [BackOffCoefficient], 
+  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [IsIOIntensive], [IsMemoryIntensive], [PartitionId]) 
+values (10, N'InfraTest', 2, 0.03, 1, 0.25, 24, null, null, null, null)
 go
 set identity_insert [rpt].[ActivitySettings] off
 go
 -- add read proc for settings
-create procedure rpt.ActivitySettings_Read @ActivityName nvarchar(100)
+create or alter procedure rpt.ActivitySettings_Read @ActivityName nvarchar(100)
 as
 begin
   with def as (

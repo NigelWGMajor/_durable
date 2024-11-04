@@ -14,7 +14,7 @@ public interface IDataStore
     Task WriteActivityStateAsync(ActivityRecord record);
 }
 
-//![DebuggerStepThrough]
+[DebuggerStepThrough]
 public class DataStore : IDataStore
 {
     public bool IsValid { get; private set; }

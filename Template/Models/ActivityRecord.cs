@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using System.Diagnostics;
+using Models;
 
 namespace Degreed.SafeTest
 {
@@ -57,10 +58,16 @@ namespace Degreed.SafeTest
         public string Reason { get; set; } = "";
 
         [JsonPropertyName("Disruptions")]
-        public string[] Disruptions { get; set; } = new string[] { };
+        public string Disruptions
+        {
+            get => string.Join("|", DisruptionArray);
+            set => DisruptionArray= value.Split('|');
+        }
+        [JsonIgnore]
+        public string[] DisruptionArray { get; set; } = new string[] { };
     }
 
-    [DebuggerStepThrough]
+    //[DebuggerStepThrough]
     public static class ActivityRecordExtender
     {
         private static readonly string _eol_ = "|";
@@ -82,28 +89,29 @@ namespace Degreed.SafeTest
                 $"{record.Trace}{_eol_}[{record.SequenceNumber}]:{message}({record.TimeEnded - record.TimeStarted})";
         }
 
-        public static string PopDisruption(this ActivityRecord record)
+        public static void PopDisruption(this ActivityRecord record)
         {
-            if (record.Disruptions.Length == 0)
-                return "";
+            if (record.DisruptionArray.Length == 0)
+                return;
             else
             {
-                var temp = record.Disruptions[0];
-                for (int i = 0; i < record.Disruptions.Length - 1; i++)
+                string[] temp = new string[record.DisruptionArray.Length - 1];
+                for (int i = 0; i < temp.Length; i++)
                 {
-                    record.Disruptions[i] = record.Disruptions[i + 1];
+                    temp[i] = record.DisruptionArray[i + 1];
                 }
-                return temp;
+                record.DisruptionArray = temp;
+                return;
             }
         }
 
-        public static string PeekDisruption(this ActivityRecord record)
+        public static bool NextDisruptionIs(this ActivityRecord record, Disruption disruption)
         {
-            if (record.Disruptions.Length == 0)
-                return "";
+            if (record.DisruptionArray.Length == 0)
+                return false;
             else
             {
-                return record.Disruptions[0];
+                return disruption.Matches(record.DisruptionArray[0]);
             }
         }
 
