@@ -101,8 +101,8 @@ public class SafeActivity
             await _store.WriteActivityStateAsync(_current);
             throw new FlowManagerInfraException("Activity deferred (emulated).");
         }
-        // crash disruption emulation
-        if (_current.NextDisruptionIs(Models.Disruption.Crash))
+        // fail disruption emulation
+        if (_current.NextDisruptionIs(Models.Disruption.Fail))
         {
             _current.PopDisruption();
             _current.State = ActivityState.Failed;
@@ -161,16 +161,43 @@ public class SafeActivity
         // set up parallel timer
         var settings = await _store.ReadActivitySettingsAsync(_current.ActivityName);
         var timeout = settings.ActivityTimeout.GetValueOrDefault(1.0);
+        if (_current.NextDisruptionIs(Models.Disruption.Pass))
+        {
+            _current.PopDisruption();
+            _current.State = ActivityState.Completed;
+            _current.AddTrace($"Activity passed (emulated).");    
+            await _store.WriteActivityStateAsync(_current);
+            return;
+        }
         try
         {
+            bool isTimeoutFaked = false;
+            if (_current.NextDisruptionIs(Models.Disruption.Stall))
+            {
+                _current.PopDisruption();
+                _current.State = ActivityState.Stalled;
+                await _store.WriteActivityStateAsync(_current);
+                throw new FlowManagerRecoverableException("Activity stalled (emulated).");
+            }
+            else if (_current.NextDisruptionIs(Models.Disruption.Drag)) 
+            {
+                _current.PopDisruption();
+                var t = timeout / 2;
+                await Task.Delay(TimeSpan.FromHours(t));
+            }
+            else if (_current.NextDisruptionIs(Models.Disruption.Stick)) 
+            {
+                _current.PopDisruption();
+                timeout = 1 / 60 / 60 / 100; // 1/100th of a second
+                isTimeoutFaked = true;
+            }
             var executionTask = Task.Run(() => _executable(_product));
             var timeoutTask = Task.Delay(TimeSpan.FromHours(timeout));
             var effectiveTask = await Task.WhenAny(executionTask, timeoutTask);
             if (effectiveTask == timeoutTask)
             {
                 _current.State = ActivityState.Stalled;
-                _current.AddTrace($"Activity timed out after {timeout} hours.");
-                _current.Reason = "Activity timed out.";
+                _current.AddTrace($"Activity timed out after {timeout} hours {(isTimeoutFaked ? "(emulated)" : "")}.");
                 throw new FlowManagerRecoverableException("Activity timed out.");
             }
             _product = await executionTask;

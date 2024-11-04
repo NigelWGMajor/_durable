@@ -118,8 +118,7 @@ Content-Type: application/json
     "name":"Pass_explicit_or_implied_allows_activities_to_complete_successfully", 
     "uniqueKey":"2012",
     "disruptions":[
-        "",
-        "Pass" 
+        "Pass"
     ]
 }
 /*
@@ -134,7 +133,7 @@ Content-Type: application/json
     "name":"Stall_should_inject_non_fatal_error_in_activity", 
     "uniqueKey":"2013",
     "disruptions":[
-        "",
+        "Pass",
         "Stall",
         "Stall",
         "Stall"
@@ -151,8 +150,7 @@ Content-Type: application/json
     "name":"Fail_should_inject_fatal_error_in_activity", 
     "uniqueKey":"2014",
     "disruptions":[
-        "Pass",
-        "Fail"
+         "Fail"
     ]
 }
 /*

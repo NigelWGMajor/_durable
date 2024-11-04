@@ -8,6 +8,7 @@ using static Activities.BaseActivities;
 using static Orchestrations.SubOrchestrationAlpha;
 using static Orchestrations.SubOrchestrationBravo;
 using static Orchestrations.SubOrchestrationCharlie;
+using DurableTask.Core.Exceptions;
 
 namespace Orchestrations;
 
@@ -66,6 +67,10 @@ public static class TestOrchestration
             logger.LogInformation("*** Initializing Product");
             product = Product.FromContext(context);
             product.ActivityName = nameof(ActivityAlpha);
+            if (product.Disruptions.Length > 0 && product.Disruptions[0] == "Crash")
+            {
+                throw new OrchestrationException("Orchestration Exception (emulated);");
+            }
         }
         string id = context.InstanceId;
         int index = 1;
