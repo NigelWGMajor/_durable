@@ -25,13 +25,37 @@ public static class SubOrchestrationAlpha // rename this and the file to match t
         ILogger logger = context.CreateReplaySafeLogger(_orchestration_name_);
         Product product = context.GetInput<Product>() ?? new Product();
         product.ActivityName = _operation_name_;
-        product = await context.CallActivityAsync<Product>(
-            _operation_name_,
-            product,
-            (await GetRetryOptionsAsync(_operation_name_, product)).WithInstanceId(
-                $"{context.InstanceId})-activity"
-            )
-        );
-        return product;
+        try
+        {
+            product = await context.CallActivityAsync<Product>(
+                _operation_name_,
+                product,
+                (await GetRetryOptionsAsync(_operation_name_, product)).WithInstanceId(
+                    $"{context.InstanceId})-activity"
+                )
+            );
+            if (product.LastState == ActivityState.Failed)
+            {
+                return product;
+            }
+            else if (product.LastState == ActivityState.Deferred)
+            {
+                var x = await GetRetryOptionsAsync("InfraTest", product);
+                var t = x?.Retry?.Policy?.FirstRetryInterval;
+                TimeSpan delay;
+                if (t.HasValue)
+                    delay = t.Value;
+                else
+                    delay = TimeSpan.FromMinutes(2);
+                await context.CreateTimer(delay, CancellationToken.None);
+                context.ContinueAsNew(product);
+                return product;
+            }
+            return product;
+        }
+        catch (Exception)
+        {
+            throw;
+        }
     }
 }

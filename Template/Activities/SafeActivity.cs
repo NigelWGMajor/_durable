@@ -34,9 +34,8 @@ public class SafeActivity
     public async Task<Product> ProcessAsync()
     {
         // quick kill if redundant
-        if (_product.IsRedundant)
+        if (_product.IsRedundant || _product.LastState == ActivityState.Failed)
             return _product;
-
         try
         {
             do
@@ -61,9 +60,8 @@ public class SafeActivity
         }
         catch (FlowManagerFatalException ex)
         {
-            _current.RetryCount++;
-            _current.AddTrace($"Fatal error encountered! {ex.Message}");
-            throw;
+            _product.LastState = ActivityState.Failed; 
+            return _product;
         }
         catch (FlowManagerInfraException ex)
         {
@@ -94,14 +92,23 @@ public class SafeActivity
             await _store.WriteActivityStateAsync(_current);
             return;
         }
-        // wait disruption    
+        // wait disruption emulation
         if (_current.NextDisruptionIs(Models.Disruption.Wait))
         {
             _current.PopDisruption();
             _current.State = ActivityState.Deferred;
             _current.AddTrace("Activity deferred (emulated).");
             await _store.WriteActivityStateAsync(_current);
-            throw new FlowManagerInfraException("Activity deferred.");
+            throw new FlowManagerInfraException("Activity deferred (emulated).");
+        }
+        // crash disruption emulation
+        if (_current.NextDisruptionIs(Models.Disruption.Crash))
+        {
+            _current.PopDisruption();
+            _current.State = ActivityState.Failed;
+            _current.AddTrace("Activity Failed (emulated).");
+            await _store.WriteActivityStateAsync(_current);
+            throw new FlowManagerFatalException("Activity Failed (emulated).");
         }
         switch (_current.State)
         {
@@ -113,9 +120,7 @@ public class SafeActivity
                 _current.DisruptionArray = (string[])_product.Disruptions.Clone();
                 if (string.IsNullOrEmpty(_current.InstanceId))
                     _current.InstanceId = _product.InstanceId;
-                _current.AddTrace(
-                    $"New {_current.OperationName} {_current.Disruptions}."
-                );
+                _current.AddTrace($"New {_current.OperationName} {_current.Disruptions}.");
                 break;
             case ActivityState.Deferred:
             case ActivityState.Stalled:
