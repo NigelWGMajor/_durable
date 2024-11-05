@@ -1,7 +1,6 @@
 using Degreed.SafeTest;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
-using Models;
 using static Activities.BaseActivities;
 using static TestActivities;
 
@@ -27,21 +26,38 @@ public static class SubOrchestrationAlpha // rename this and the file to match t
         product.ActivityName = _operation_name_;
         try
         {
-            double timeout = 0.1;  //GetTimeout(_operation_name_, product);
-            var cts = new CancellationTokenSource();
-            var executionTask = context.CallActivityAsync<Product>(
-                _operation_name_,
-                product,
-                await GetRetryOptionsAsync(_operation_name_, product)
-            );
-            var timeoutTask = context.CreateTimer(context.CurrentUtcDateTime.AddHours(timeout), cts.Token);
-            var effectiveTask = await Task.WhenAny(executionTask, timeoutTask);
-            if (effectiveTask == timeoutTask)
-            {
-                throw new FlowManagerRecoverableException($"The activity {_operation_name_} timed out.");
-            }
-            cts.Cancel();
+           // double timeout = 0.0001;  //GetTimeout(_operation_name_, product);
+           // var cts = new CancellationTokenSource();
+           var executionTask = context.CallActivityAsync<Product>(
+               _operation_name_,
+               product,
+               await GetRetryOptionsAsync(_operation_name_, product)
+           );
+           // var timeoutTask = context.CreateTimer(context.CurrentUtcDateTime.AddHours(timeout), cts.Token);
+            //var effectiveTask = await executionTask;
+           // if (effectiveTask == timeoutTask)
+           // {
+           //     throw new FlowManagerRecoverableException($"The activity {_operation_name_} timed out.");
+            //}
+            //cts.Cancel();
             product = await executionTask;
+            if (product.LastState == ActivityState.Stuck)
+            {
+                throw new FlowManagerRecoverableException($"The activity {_operation_name_} is stuck.");
+            }
+            else if (product.LastState == ActivityState.Deferred)
+            {
+                var x = await GetRetryOptionsAsync("InfraTest", product); //! change for prod
+                var t = x?.Retry?.Policy?.FirstRetryInterval;
+                TimeSpan delay;
+                if (t.HasValue)
+                    delay = t.Value;
+                else
+                    delay = TimeSpan.FromMinutes(2);
+                await context.CreateTimer(delay, CancellationToken.None);
+                context.ContinueAsNew(product);
+                return product;
+            }
             if (product.LastState == ActivityState.Failed)
             {
                 return product;

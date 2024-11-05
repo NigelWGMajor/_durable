@@ -174,7 +174,23 @@ public class SafeActivity
         }
         try
         {
-            _product = await _executable(_product);
+            CancellationTokenSource cts = new();
+            var settings = await _store.ReadActivitySettingsAsync(_current.ActivityName);
+
+            Task<Product> task_product = _executable(_product);
+            Task timeout = Task.Delay(TimeSpan.FromHours(_current.SequenceNumber == 2 ? 0.0001 : settings.ActivityTimeout.GetValueOrDefault(defaultValue: 1.0)), cts.Token);
+
+            var x = await Task.WhenAny(task_product, timeout); 
+            if (x == timeout)
+            {
+                _current.State = ActivityState.Stuck;
+                _current.AddTrace($"Activity {_current.ActivityName} timed out.");
+                await _store.WriteActivityStateAsync(_current);
+                _current.SequenceNumber++;
+                throw new FlowManagerRecoverableException($"Activity {_current.ActivityName} timed out.");
+            }
+            cts.Cancel();
+            _product = await (x as Task<Product>);
             _current.State = _product.LastState;
             _current.AddTrace($"Activity completed successfully.");
         }

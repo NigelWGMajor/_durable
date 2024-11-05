@@ -62,81 +62,79 @@ public static class TestOrchestration
             logger.LogInformation("*** Initializing Product");
             product = Product.FromContext(context);
             product.ActivityName = nameof(ActivityAlpha);
-            if (product.Disruptions.Length > 0 && product.Disruptions[0] == "Crash")
-            {
-                throw new OrchestrationException("Orchestration Exception (emulated);");
-            }
+            // if (product.Disruptions.Length > 0 && product.Disruptions[0] == "Crash")
+            // {
+            //     throw new OrchestrationException("Orchestration Exception (emulated);");
+            // }
         }
         string id = context.InstanceId;
-        int index = 1;
-        context.SetCustomStatus($"{product.LastState}{index:00}");
-        // Sub-Orchestration Alpha
-        // try
-        // {
+       
+        context.SetCustomStatus($"{product.LastState}");
+        //try
+        //{
             product = await context.CallSubOrchestratorAsync<Product>(
                 _orc_a_name_,
                 product,
                 await GetLocalRetryOptionsAsync(_orc_a_name_, product)
-            //.WithInstanceId($"{id}Alpha)")
             );
-        // }
+        //}
         // catch (FlowManagerInfraException)
         // {
         //     throw;
         // }
-        // catch (FlowManagerRecoverableException)
-        // {
-        //     throw;
+        //catch (FlowManagerRecoverableException)
+        //{
+        //    throw;
         // }
-        index++;
-        context.SetCustomStatus($"{product.LastState}{index:00}");
+        
+        context.SetCustomStatus($"A: {product.LastState}");
         // Sub-Orchestration Bravo
-        try
-        {
+        // try
+        // {
             product = await context.CallSubOrchestratorAsync<Product>(
                 _orc_b_name_,
                 product,
                 await GetLocalRetryOptionsAsync(_orc_b_name_, product)
             //.WithInstanceId($"{id}Bravo)")
             );
-        }
-        catch (FlowManagerInfraException)
-        {
-            throw;
-        }
-        index++;
-        context.SetCustomStatus($"{product.LastState}{index:00}");
+        // }
+        // catch (FlowManagerInfraException)
+        // {
+        //     throw;
+        // }
+      
+        context.SetCustomStatus($"B: {product.LastState}");
         // Sub-Orchestration Charlie
-        try
-        {
+        // try
+        // {
             product = await context.CallSubOrchestratorAsync<Product>(
                 _orc_c_name_,
                 product,
                 await GetLocalRetryOptionsAsync(_orc_c_name_, product)
             //.WithInstanceId($"{id}Charlie)")
             );
-        }
-        catch (FlowManagerInfraException)
-        {
-            throw;
-        }
-        index++;
+        // }
+        // catch (FlowManagerInfraException)
+        // {
+        //     throw;
+        // }
+        
         // Final Activity
-        context.SetCustomStatus($"{product.LastState}{index:00}");
-        try
-        {
+        context.SetCustomStatus($"C: {product.LastState}");
+        // try
+        // {
             product = await context.CallActivityAsync<Product>(
                 _finish_processor_name_,
                 product,
                 await GetRetryOptionsAsync(_finish_processor_name_, product)
             //.WithInstanceId($"{id}Final)")
             );
-        }
-        catch (FlowManagerInfraException)
-        {
-            throw;
-        }
-        context.SetCustomStatus($"{product.LastState}{index++:00}");
+        // }
+        // catch (FlowManagerInfraException)
+        // {
+        //     throw;
+        // }
+        context.SetCustomStatus($"D: {product.LastState}");
 
         Console.WriteLine($"**\r\n*** Ended Main Orchestration as {product.LastState} \r\n**");
         return JsonSerializer.Serialize(product.ActivityHistory, _jsonOptions);
