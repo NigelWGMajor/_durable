@@ -1,4 +1,7 @@
 using Degreed.SafeTest;
+using DurableTask.Core;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.DurableTask.Worker.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Primitives;
 
@@ -60,7 +63,7 @@ public class SafeActivity
         }
         catch (FlowManagerFatalException ex)
         {
-            _product.LastState = ActivityState.Failed; 
+            _product.LastState = ActivityState.Failed;
             return _product;
         }
         catch (FlowManagerInfraException ex)
@@ -159,51 +162,21 @@ public class SafeActivity
         if (_product.IsRedundant)
             return;
         // set up parallel timer
-        var settings = await _store.ReadActivitySettingsAsync(_current.ActivityName);
-        var timeout = settings.ActivityTimeout.GetValueOrDefault(1.0);
+        //var settings = await _store.ReadActivitySettingsAsync(_current.ActivityName);
+        //var timeout = settings.ActivityTimeout.GetValueOrDefault(1.0);
         if (_current.NextDisruptionIs(Models.Disruption.Pass))
         {
             _current.PopDisruption();
             _current.State = ActivityState.Completed;
-            _current.AddTrace($"Activity passed (emulated).");    
+            _current.AddTrace($"Activity passed (emulated).");
             await _store.WriteActivityStateAsync(_current);
             return;
         }
         try
         {
-            bool isTimeoutFaked = false;
-            if (_current.NextDisruptionIs(Models.Disruption.Stall))
-            {
-                _current.PopDisruption();
-                _current.State = ActivityState.Stalled;
-                await _store.WriteActivityStateAsync(_current);
-                throw new FlowManagerRecoverableException("Activity stalled (emulated).");
-            }
-            else if (_current.NextDisruptionIs(Models.Disruption.Drag)) 
-            {
-                _current.PopDisruption();
-                var t = timeout / 2;
-                await Task.Delay(TimeSpan.FromHours(t));
-            }
-            else if (_current.NextDisruptionIs(Models.Disruption.Stick)) 
-            {
-                _current.PopDisruption();
-                timeout = 1 / 60 / 60 / 100; // 1/100th of a second
-                isTimeoutFaked = true;
-            }
-            var executionTask = Task.Run(() => _executable(_product));
-            var timeoutTask = Task.Delay(TimeSpan.FromHours(timeout));
-            var effectiveTask = await Task.WhenAny(executionTask, timeoutTask);
-            if (effectiveTask == timeoutTask)
-            {
-                _current.State = ActivityState.Stalled;
-                _current.AddTrace($"Activity timed out after {timeout} hours {(isTimeoutFaked ? "(emulated)" : "")}.");
-                throw new FlowManagerRecoverableException("Activity timed out.");
-            }
-            _product = await executionTask;
+            _product = await _executable(_product);
+            _current.State = _product.LastState;
             _current.AddTrace($"Activity completed successfully.");
-            _current.MarkEndTime();
-            _current.State = ActivityState.Completed;
         }
         catch (FlowManagerRecoverableException ex)
         {

@@ -38,11 +38,6 @@ public static class TestOrchestration
     const string _infra_settings_name_ = "Infra";
     const string _infra_test_settings_name_ = "InfraTest";
 
-    public static bool ShouldRetry(Exception ex)
-    {
-        return (ex is FlowManagerInfraException);
-    }
-
     public static async Task<TaskOptions> GetLocalRetryOptionsAsync(
         string activityName,
         Product product
@@ -76,20 +71,23 @@ public static class TestOrchestration
         int index = 1;
         context.SetCustomStatus($"{product.LastState}{index:00}");
         // Sub-Orchestration Alpha
-        try
-        {
+        // try
+        // {
             product = await context.CallSubOrchestratorAsync<Product>(
                 _orc_a_name_,
                 product,
-                (await GetLocalRetryOptionsAsync(_orc_a_name_, product)).WithInstanceId(
-                    $"{id}Alpha)"
-                )
+                await GetLocalRetryOptionsAsync(_orc_a_name_, product)
+            //.WithInstanceId($"{id}Alpha)")
             );
-        }
-        catch (FlowManagerInfraException)
-        {
-            throw;
-        }
+        // }
+        // catch (FlowManagerInfraException)
+        // {
+        //     throw;
+        // }
+        // catch (FlowManagerRecoverableException)
+        // {
+        //     throw;
+        // }
         index++;
         context.SetCustomStatus($"{product.LastState}{index:00}");
         // Sub-Orchestration Bravo
@@ -98,9 +96,8 @@ public static class TestOrchestration
             product = await context.CallSubOrchestratorAsync<Product>(
                 _orc_b_name_,
                 product,
-                (await GetLocalRetryOptionsAsync(_orc_b_name_, product)).WithInstanceId(
-                    $"{id}Bravo)"
-                )
+                await GetLocalRetryOptionsAsync(_orc_b_name_, product)
+            //.WithInstanceId($"{id}Bravo)")
             );
         }
         catch (FlowManagerInfraException)
@@ -115,9 +112,8 @@ public static class TestOrchestration
             product = await context.CallSubOrchestratorAsync<Product>(
                 _orc_c_name_,
                 product,
-                (await GetLocalRetryOptionsAsync(_orc_c_name_, product)).WithInstanceId(
-                    $"{id}Charlie)"
-                )
+                await GetLocalRetryOptionsAsync(_orc_c_name_, product)
+            //.WithInstanceId($"{id}Charlie)")
             );
         }
         catch (FlowManagerInfraException)
@@ -127,16 +123,15 @@ public static class TestOrchestration
         index++;
         // Final Activity
         context.SetCustomStatus($"{product.LastState}{index:00}");
-        try 
+        try
         {
-        product = await context.CallActivityAsync<Product>(
-            _finish_processor_name_,
-            product,
-            (await GetRetryOptionsAsync(_finish_processor_name_, product)).WithInstanceId(
-                $"{id}Final)"
-            )
-        );
-                }
+            product = await context.CallActivityAsync<Product>(
+                _finish_processor_name_,
+                product,
+                await GetRetryOptionsAsync(_finish_processor_name_, product)
+            //.WithInstanceId($"{id}Final)")
+            );
+        }
         catch (FlowManagerInfraException)
         {
             throw;

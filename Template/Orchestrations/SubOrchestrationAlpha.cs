@@ -27,20 +27,28 @@ public static class SubOrchestrationAlpha // rename this and the file to match t
         product.ActivityName = _operation_name_;
         try
         {
-            product = await context.CallActivityAsync<Product>(
+            double timeout = 0.1;  //GetTimeout(_operation_name_, product);
+            var cts = new CancellationTokenSource();
+            var executionTask = context.CallActivityAsync<Product>(
                 _operation_name_,
                 product,
-                (await GetRetryOptionsAsync(_operation_name_, product)).WithInstanceId(
-                    $"{context.InstanceId})-activity"
-                )
+                await GetRetryOptionsAsync(_operation_name_, product)
             );
+            var timeoutTask = context.CreateTimer(context.CurrentUtcDateTime.AddHours(timeout), cts.Token);
+            var effectiveTask = await Task.WhenAny(executionTask, timeoutTask);
+            if (effectiveTask == timeoutTask)
+            {
+                throw new FlowManagerRecoverableException($"The activity {_operation_name_} timed out.");
+            }
+            cts.Cancel();
+            product = await executionTask;
             if (product.LastState == ActivityState.Failed)
             {
                 return product;
             }
             else if (product.LastState == ActivityState.Deferred)
             {
-                var x = await GetRetryOptionsAsync("InfraTest", product);
+                var x = await GetRetryOptionsAsync("InfraTest", product); //! change for prod
                 var t = x?.Retry?.Policy?.FirstRetryInterval;
                 TimeSpan delay;
                 if (t.HasValue)
