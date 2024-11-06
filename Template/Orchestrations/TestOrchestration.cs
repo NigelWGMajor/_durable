@@ -23,17 +23,17 @@ public static class TestOrchestration
 
     // A Test Orchestration using three predefined sub-orchestrations.
 
-    // // RESPONSIBILITIES:
-    // 1. Set up the logger
-    // 2. Initialize the product from the input data in the context
-    // 3. For each sub-orchestration:
-    //      c. call the sub-orchestration asynchronously
-    // 4. Call the final activity
-    // 5. Set the custom status
+    // RESPONSIBILITIES:
+    // make constants for each Sub-Orchestration name
+    // make a constant for the first activity name
+    // if you are using a custom product change the type references in 
+    // the orchestrations to match the actual product type 
+    // and adjust the Start code at the bottom to match the actual product type
 
     const string _orc_a_name_ = nameof(OrchestrationAlpha);
     const string _orc_b_name_ = nameof(OrchestrationBravo);
     const string _orc_c_name_ = nameof(OrchestrationCharlie);
+    const string _first_activity_name_ = nameof(ActivityAlpha);
     const string _infra_settings_name_ = "Infra";
     const string _infra_test_settings_name_ = "InfraTest";
 
@@ -54,13 +54,13 @@ public static class TestOrchestration
     )
     {
         ILogger logger = context.CreateReplaySafeLogger(nameof(RunTestOrchestrator));
-
+ 
         Product product = new Product();
         if (!context.IsReplaying)
         {
             logger.LogInformation("*** Initializing Product");
             product = Product.FromContext(context);
-            product.ActivityName = nameof(ActivityAlpha);
+            product.ActivityName = _first_activity_name_;
         }
         string id = context.InstanceId;
 
