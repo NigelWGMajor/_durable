@@ -12,6 +12,17 @@ public class SafeActivity
     private Func<Product, Task<Product>> _executable;
     private static DataStore _store = new DataStore("");
     private ActivityRecord _current = new();
+    private bool CapacityIsCompromised()
+    {
+        // check the existing load on the system, and the load rating for this activity.
+        // If the repeat count is not too high given this, then return false to allow the action to proceed immediately. 
+        /* THIS IS PENDING THE DATA MODIFICATIONS TO THE ACTIVITY SETTINGS to include the load factor. */
+        /* Also needs a stored procedure to get the current activity load  */
+        /* We should make this abstract by having the total load in the 0 - 1.0 range */
+
+
+        return false;
+    }
 
     public SafeActivity(Func<Product, Task<Product>> executable, Product product)
     {
@@ -64,6 +75,7 @@ public class SafeActivity
         catch (FlowManagerFatalException ex)
         {
             _product.LastState = ActivityState.Failed;
+            _product.Errors += $"Fatal error: {ex.Message}";
             return _product;
         }
         catch (FlowManagerInfraException ex)
@@ -84,7 +96,16 @@ public class SafeActivity
     {
         if (_product.IsRedundant)
             return;
+        // If the system is overloaded, we can defer the activity.
         _current = await _store.ReadActivityStateAsync(_product.Payload.UniqueKey);
+        if (CapacityIsCompromised())
+        {
+            _current.RetryCount++;
+            _current.State = ActivityState.Deferred;
+            _current.AddTrace($"Activity {_current.ActivityName} deferred for system load).");
+            await _store.WriteActivityStateAsync(_current);
+            throw new FlowManagerInfraException("Activity deferred.");
+        }
         if (
             !string.IsNullOrEmpty(_current.InstanceId) && _product.InstanceId != _current.InstanceId
         )
@@ -99,8 +120,17 @@ public class SafeActivity
         {
             _current.TimeStarted = DateTime.UtcNow;
         }
-        // wait disruption emulation
+        // wait disruption emulation is similar to choke, except that choke should be used for
+        // delaying when busy, wait implies a system or infrastructure issue.
         if (_current.NextDisruptionIs(Models.Disruption.Wait))
+        {
+            _current.PopDisruption();
+            _current.State = ActivityState.Deferred;
+            _current.AddTrace("Activity deferred (emulated).");
+            await _store.WriteActivityStateAsync(_current);
+            throw new FlowManagerInfraException("Activity deferred (emulated).");
+        }
+        if (_current.NextDisruptionIs(Models.Disruption.Choke))
         {
             _current.PopDisruption();
             _current.State = ActivityState.Deferred;
