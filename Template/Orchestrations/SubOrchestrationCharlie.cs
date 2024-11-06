@@ -9,11 +9,7 @@ namespace Orchestrations;
 
 public static class SubOrchestrationCharlie // rename this and the file to match the orchestration name
 {
-    // constants to tune retry policy:
-    private const bool longRunning = false;
-    private const bool highMemory = false;
-    private const bool highDataOrFile = false;
-    private static string _operation_name_ = nameof(ActivityCharlie); // rename this to match the activity name
+    private const string _operation_name_ = nameof(ActivityCharlie); // rename this to match the activity name
 
     private const string _orchestration_name_ = nameof(OrchestrationCharlie); // rename this appropriately
 
@@ -27,21 +23,29 @@ public static class SubOrchestrationCharlie // rename this and the file to match
         product.ActivityName = _operation_name_;
         try
         {
-            double timeout = 0.1;  //GetTimeout(_operation_name_, product);
-            var cts = new CancellationTokenSource();
-            var executionTask = context.CallActivityAsync<Product>(
-                _operation_name_,
-                product,
-                await GetRetryOptionsAsync(_operation_name_, product)
-            );
-            var timeoutTask = context.CreateTimer(context.CurrentUtcDateTime.AddHours(timeout), cts.Token);
-            var effectiveTask = await Task.WhenAny(executionTask, timeoutTask);
-            if (effectiveTask == timeoutTask)
-            {
-                throw new FlowManagerRecoverableException($"The activity {_operation_name_} timed out.");
-            }
-            cts.Cancel();
+           var executionTask = context.CallActivityAsync<Product>(
+               _operation_name_,
+               product,
+               await GetRetryOptionsAsync(_operation_name_, product)
+           );
             product = await executionTask;
+            if (product.LastState == ActivityState.Stuck)
+            {
+                throw new FlowManagerRecoverableException($"The activity {_operation_name_} is stuck.");
+            }
+            else if (product.LastState == ActivityState.Deferred)
+            {
+                var x = await GetRetryOptionsAsync("InfraTest", product); //! change for prod
+                var t = x?.Retry?.Policy?.FirstRetryInterval;
+                TimeSpan delay;
+                if (t.HasValue)
+                    delay = t.Value;
+                else
+                    delay = TimeSpan.FromMinutes(2);
+                await context.CreateTimer(delay, CancellationToken.None);
+                context.ContinueAsNew(product);
+                return product;
+            }
             if (product.LastState == ActivityState.Failed)
             {
                 return product;

@@ -75,7 +75,7 @@ Content-Type: application/json
 
 {
     "name":"Wait_should_inject_a_metadata_failure", 
-    "uniqueKey":"2010",
+    "uniqueKey":"1004",
     "disruptions":[
         "Wait"
     ]
@@ -86,7 +86,7 @@ Content-Type: application/json
 
 {
     "name":"Pass_explicit_or_implied_allows_activities_to_complete_successfully", 
-    "uniqueKey":"2012",
+    "uniqueKey":"1005",
     "disruptions":[
         "Pass"
     ]
@@ -97,9 +97,9 @@ Content-Type: application/json
 
 {
     "name":"Stall_should_inject_non_fatal_error_in_activity", 
-    "uniqueKey":"2013",
+    "uniqueKey":"1006",
     "disruptions":[
-        "Pass",
+        "None",
         "Stall",
         "Stall",
         "Stall"
@@ -111,7 +111,7 @@ Content-Type: application/json
 
 {
     "name":"Fail_should_inject_fatal_error_in_activity", 
-    "uniqueKey":"2014",
+    "uniqueKey":"1007",
     "disruptions":[
          "Fail"
     ]
@@ -122,7 +122,7 @@ Content-Type: application/json
 
 {
     "name":"Drag_should_inject_long_running_activity", 
-    "uniqueKey":"2015",
+    "uniqueKey":"1008",
     "disruptions":[
         "Drag"
     ]
@@ -133,7 +133,7 @@ Content-Type: application/json
 
 {
     "name":"Reentrant_call_during_drag_should_become_redundant", 
-    "uniqueKey":"2015"
+    "uniqueKey":"1008"
 }
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
@@ -141,7 +141,7 @@ Content-Type: application/json
 
 {
     "name":"Stick_should_inject_activity_timeout", 
-    "uniqueKey":"2016",
+    "uniqueKey":"1009",
     "disruptions":[
         "Stick"
     ]
@@ -152,7 +152,7 @@ Content-Type: application/json
 
 {
     "name":"Choke_should_defer_initially_for_resources", 
-    "uniqueKey":"2017",
+    "uniqueKey":"1010",
     "disruptions":[
         "Choke"
     ]
@@ -163,7 +163,7 @@ Content-Type: application/json
 
 {
     "name":"Call_to_previously_unsuccessful_should_become_redundant", 
-    "uniqueKey":"2014"
+    "uniqueKey":"1007"
 }
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1

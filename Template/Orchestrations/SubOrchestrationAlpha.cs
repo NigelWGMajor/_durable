@@ -8,11 +8,7 @@ namespace Orchestrations;
 
 public static class SubOrchestrationAlpha // rename this and the file to match the orchestration name
 {
-    // constants to tune retry policy:
-    private const bool longRunning = false;
-    private const bool highMemory = false;
-    private const bool highDataOrFile = false;
-    private static string _operation_name_ = nameof(ActivityAlpha); // rename this to match the activity name
+    private const string _operation_name_ = nameof(ActivityAlpha); // rename this to match the activity name
 
     private const string _orchestration_name_ = nameof(OrchestrationAlpha); // rename this appropriately
 
@@ -26,20 +22,11 @@ public static class SubOrchestrationAlpha // rename this and the file to match t
         product.ActivityName = _operation_name_;
         try
         {
-           // double timeout = 0.0001;  //GetTimeout(_operation_name_, product);
-           // var cts = new CancellationTokenSource();
            var executionTask = context.CallActivityAsync<Product>(
                _operation_name_,
                product,
                await GetRetryOptionsAsync(_operation_name_, product)
            );
-           // var timeoutTask = context.CreateTimer(context.CurrentUtcDateTime.AddHours(timeout), cts.Token);
-            //var effectiveTask = await executionTask;
-           // if (effectiveTask == timeoutTask)
-           // {
-           //     throw new FlowManagerRecoverableException($"The activity {_operation_name_} timed out.");
-            //}
-            //cts.Cancel();
             product = await executionTask;
             if (product.LastState == ActivityState.Stuck)
             {

@@ -95,6 +95,10 @@ public class SafeActivity
             await _store.WriteActivityStateAsync(_current);
             return;
         }
+        if (_current.TimeStarted == DateTime.MinValue)
+        {
+            _current.TimeStarted = DateTime.UtcNow;
+        }
         // wait disruption emulation
         if (_current.NextDisruptionIs(Models.Disruption.Wait))
         {
@@ -160,11 +164,10 @@ public class SafeActivity
     private async Task Process()
     {
         if (_product.IsRedundant)
+        {
             return;
-        // set up parallel timer
-        //var settings = await _store.ReadActivitySettingsAsync(_current.ActivityName);
-        //var timeout = settings.ActivityTimeout.GetValueOrDefault(1.0);
-        if (_current.NextDisruptionIs(Models.Disruption.Pass))
+        }
+        else if (_current.NextDisruptionIs(Models.Disruption.Pass))
         {
             _current.PopDisruption();
             _current.State = ActivityState.Completed;
@@ -175,22 +178,50 @@ public class SafeActivity
         try
         {
             CancellationTokenSource cts = new();
-            var settings = await _store.ReadActivitySettingsAsync(_current.ActivityName);
-
+            double? limit = (
+                await _store.ReadActivitySettingsAsync(_current.ActivityName)
+            ).ActivityTimeout;
+            if (_current.NextDisruptionIs(Models.Disruption.None))
+            {
+                _current.PopDisruption();
+            }
+            else if (_current.NextDisruptionIs(Models.Disruption.Stall))
+            {
+                _current.PopDisruption();
+                _current.State = ActivityState.Ready;
+                throw new FlowManagerRecoverableException(
+                    $"Activity {_current.ActivityName} stalled (emulated)."
+                );
+            }
+            else if (_current.NextDisruptionIs(Models.Disruption.Stick))
+            {
+                _current.PopDisruption();
+                limit = 0.0001;
+            }
+            else if (_current.NextDisruptionIs(Models.Disruption.Drag))
+            {
+                _current.PopDisruption();
+                limit = limit / 2.0;
+            }
             Task<Product> task_product = _executable(_product);
-            Task timeout = Task.Delay(TimeSpan.FromHours(_current.SequenceNumber == 2 ? 0.0001 : settings.ActivityTimeout.GetValueOrDefault(defaultValue: 1.0)), cts.Token);
-
-            var x = await Task.WhenAny(task_product, timeout); 
+            Task timeout = Task.Delay(
+                TimeSpan.FromHours(limit.GetValueOrDefault(defaultValue: 1.0)),
+                cts.Token
+            );
+            var x = await Task.WhenAny(task_product, timeout);
             if (x == timeout)
             {
                 _current.State = ActivityState.Stuck;
                 _current.AddTrace($"Activity {_current.ActivityName} timed out.");
                 await _store.WriteActivityStateAsync(_current);
                 _current.SequenceNumber++;
-                throw new FlowManagerRecoverableException($"Activity {_current.ActivityName} timed out.");
+                throw new FlowManagerRecoverableException(
+                    $"Activity {_current.ActivityName} timed out."
+                );
             }
             cts.Cancel();
-            _product = await (x as Task<Product>);
+            _product = await (x as Task<Product> ?? Task.FromResult(_product));
+
             _current.State = _product.LastState;
             _current.AddTrace($"Activity completed successfully.");
         }
