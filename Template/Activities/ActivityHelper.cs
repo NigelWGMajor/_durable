@@ -4,33 +4,14 @@ using Microsoft.DurableTask;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Azure.Functions.Worker;
 using System.Diagnostics;
-using Microsoft.Azure.Functions.Worker.Http;
-using System.Security.Principal;
 
 namespace Activities;
-
-/// <summary>
-/// This class extends any (sub) orchestration to integrate Flow Management
-/// in a simple manner.
-/// Essentially it wraps the function calls to allow suppression of the
-/// calls and error detection.
-/// Any orchestration class that needs this should derive from this class.
-/// </summary>
-public static class BaseActivities
+public static class ActivityHelper
 {
-    // use to prevent timeout:
     internal static TimeSpan _tiny_delay = TimeSpan.FromSeconds(10);
-    internal static TimeSpan _test_delay = TimeSpan.FromMinutes(1);
 
-    // used to induce timeout:
-    internal static TimeSpan _big_delay = TimeSpan.FromMinutes(2);
-    internal static TimeSpan _short_delay = TimeSpan.FromHours(1);
-    internal static TimeSpan _long_delay = TimeSpan.FromHours(12);
-
-   // internal const string _pre_processor_name_ = nameof(PreProcessAsync);
-   // internal const string _post_processor_name_ = nameof(PostProcessAsync);
     internal const string _finish_processor_name_ = nameof(FinishAsync);
-    //internal const string _sub_orchestration_name_ = "default";
+ 
     [DebuggerStepThrough]
     internal static async Task<TaskOptions> GetRetryOptionsAsync(string activityName, Product product)
     {
@@ -52,7 +33,7 @@ public static class BaseActivities
     internal static DataStore _store;
 
     [DebuggerStepThrough]
-    static BaseActivities()
+    static ActivityHelper()
     {
         var builder = new ConfigurationBuilder()
             .SetBasePath(System.IO.Directory.GetCurrentDirectory())
@@ -68,12 +49,14 @@ public static class BaseActivities
     }
 
     [DebuggerStepThrough]
-    internal static bool MatchesDisruption(string s, Disruption d)
-    {
-        return (s.ToLower() == d.ToString().ToLower());
-    }
-
-    [DebuggerStepThrough]
+    /// <summary>
+    /// After each of the activities has completed, the overall state will be Completed or Failed.
+    /// The Finishing method converts this to a Successful or Unsuccessful status, based on the state
+    /// of the final activity.
+    /// </summary>
+    /// <param name="product"></param>
+    /// <param name="context"></param>
+    /// <returns></returns>
     [Function(nameof(FinishAsync))]
     public static async Task<Product> FinishAsync(
         [ActivityTrigger] Product product,
@@ -84,7 +67,7 @@ public static class BaseActivities
         {
             return product;
         }
-        var uniqueKey = product.Payload.UniqueKey;
+        var uniqueKey = product.UniqueKey;
         string iid = context.InvocationId.Substring(0, 8);
         var current = await _store.ReadActivityStateAsync(uniqueKey);
         ; // FINISH
@@ -100,7 +83,6 @@ public static class BaseActivities
             current.State = ActivityState.Unsuccessful;
             current.AddTrace("(Final) Completed unsuccessfully");
         }
-        //current.SequenceNumber++;
         current.TimestampRecord_UpdateProductStateHistory(product);
         current.AddTrace($"Output: {product.Output}");
         await _store.WriteActivityStateAsync(current);

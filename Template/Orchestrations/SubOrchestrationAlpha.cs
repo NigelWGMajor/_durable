@@ -1,7 +1,7 @@
 using Degreed.SafeTest;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
-using static Activities.BaseActivities;
+using static Activities.ActivityHelper;
 using static TestActivities;
 
 namespace Orchestrations;
@@ -18,7 +18,7 @@ public static class SubOrchestrationAlpha // rename this and the file to match t
     )
     {
         ILogger logger = context.CreateReplaySafeLogger(_orchestration_name_);
-        Product product = context.GetInput<Product>() ?? new Product();
+        Product product = context.GetInput<Product>() ?? new Product("");
         product.ActivityName = _operation_name_;
         try
         {

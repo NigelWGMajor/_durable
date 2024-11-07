@@ -43,7 +43,8 @@ Content-Type: application/json
 
 {
     "name":"Normal_operation_should_finish_successfully", 
-    "uniqueKey":"1001"
+    "uniqueKey":"1001",
+    "externalData":"Just included to verify that the interface is accepted"  
 }
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1

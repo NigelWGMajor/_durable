@@ -4,7 +4,7 @@ using Microsoft.DurableTask;
 using Microsoft.DurableTask.Client;
 using Degreed.SafeTest;
 using static TestActivities;
-using static Activities.BaseActivities;
+using static Activities.ActivityHelper;
 using static Orchestrations.SubOrchestrationAlpha;
 using static Orchestrations.SubOrchestrationBravo;
 using static Orchestrations.SubOrchestrationCharlie;
@@ -55,11 +55,11 @@ public static class TestOrchestration
     {
         ILogger logger = context.CreateReplaySafeLogger(nameof(RunTestOrchestrator));
  
-        Product product = new Product();
+        Product product = new Product("");
         if (!context.IsReplaying)
         {
             logger.LogInformation("*** Initializing Product");
-            product = Product.FromContext(context);
+            product = context.GetInput<Product>() ?? new Product("");
             product.ActivityName = _first_activity_name_;
         }
         string id = context.InstanceId;
@@ -119,14 +119,14 @@ public static class TestOrchestration
     {
         ILogger logger = executionContext.GetLogger("TestOrchestration_HttpStart");
         string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-        var inputData = JsonSerializer.Deserialize<InputData>(requestBody);
-
-        var product = new Product();
+        var inputData = JsonSerializer.Deserialize<InputPayload>(requestBody);
+        var product = new Product(requestBody);
         product.LastState = ActivityState.Ready;
-        product.Payload.Name = inputData?.Name ?? "";
-        product.OperationName = inputData?.Name ?? "";
-        product.Payload.UniqueKey = inputData?.UniqueKey ?? "";
+        product.Name = inputData?.Name ?? "";
+        product.Name = inputData?.Name ?? "";
+        product.UniqueKey = inputData?.UniqueKey ?? "";
         product.Disruptions = inputData?.Disruptions ?? new string[0];
+        product.HostServer = OrchestrationHelper.IdentifyServer();
         StartOrchestrationOptions options = new StartOrchestrationOptions
         {
             InstanceId =

@@ -97,7 +97,7 @@ public class SafeActivity
         if (_product.IsRedundant)
             return;
         // If the system is overloaded, we can defer the activity.
-        _current = await _store.ReadActivityStateAsync(_product.Payload.UniqueKey);
+        _current = await _store.ReadActivityStateAsync(_product.UniqueKey);
         if (CapacityIsCompromised())
         {
             _current.RetryCount++;
@@ -151,7 +151,7 @@ public class SafeActivity
         {
             case ActivityState.unknown:
                 _current.ActivityName = _product.ActivityName;
-                _current.OperationName = _product.OperationName;
+                _current.OperationName = _product.Name;
                 _current.SequenceNumber = 0;
                 _current.State = ActivityState.Ready;
                 _current.DisruptionArray = (string[])_product.Disruptions.Clone();

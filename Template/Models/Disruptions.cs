@@ -12,7 +12,7 @@ namespace Models
         Drag, // take a long time to complete (but not time out)
         Stick, // take long enough to time out
         Choke, // emulate diminished resources
-        None // no disruption`
+        None // no disruption
     }
 
     public static class DisruptionExtensions

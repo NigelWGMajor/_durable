@@ -12,14 +12,37 @@ public class Product
 {
     public Product()
     {
-        Payload = new Payload();
     }
-    [JsonPropertyName("OperationName")]
-    public string OperationName { get; set; } = "";
+    public Product(string inputData)
+    {
+        Payload = inputData.Replace('\"', '\'');
+    }
+    [JsonPropertyName("UniqueKey")]
+    public string UniqueKey { get; set; } = "";
+    [JsonPropertyName("Name")]
+    public string Name { get; set; } = "";
     [JsonPropertyName("ActivityName")]
     public string ActivityName { get; set; } = "";
     [JsonPropertyName("PayLoad")]
-    public Payload Payload { get; set; }
+    /// <summary>
+    /// This holds a modified version of the json string that is passed to the orchestrator.
+    /// Double quotes have been replaced with single quotes: 
+    /// Ypu may get or set the Payload from Json directly using the PayloadJson 
+    /// property, which applies this substitution transparently.
+    /// <value></value>
+    public string Payload { get; set; } = "";
+    [JsonIgnore]
+    public string PayloadJson 
+    {
+        get 
+        { 
+            return Payload.Replace('\'', '\"'); 
+        }
+        set
+        {
+            Payload = value.Replace('\"', '\'');
+        }
+    }
     [JsonPropertyName("LastState")]
     public ActivityState LastState { get; set; } = ActivityState.unknown;
     [JsonPropertyName("ActivityHistory")]
@@ -39,41 +62,13 @@ public class Product
     public static Product FromContext(TaskOrchestrationContext context)
     {
         return context == null ? 
-            new Product() 
-            : context.GetInput<Product>() ?? new Product();
+            new Product("") 
+            : context.GetInput<Product>() ?? new Product("");
     }
     [JsonPropertyName("NextTimeout")]
     public TimeSpan NextTimeout { get; set; } = TimeSpan.Zero;
     [JsonPropertyName("IsRedundant")]
     public bool IsRedundant { get; set; } = false;
-
-    /// <summary>
-    /// Pops the next disruption (or an empty string) off the disruptions stack
-    /// into the NextDisruption variable. Need to call once per cycle.
-    /// </summary>
-    /// <returns></returns>
-    public void PopDisruption()
-    {
-        // return the next disruption, removing it from the disruptions list
-        if (Disruptions.Length == 0)
-            NextDisruption = "";
-        else
-        {
-            // if (Disruptions[0].Length == 0)
-            // {
-            //     NextDisruption = Disruption.Pass.ToString();
-            // }
-            // else
-            // {
-                NextDisruption = Disruptions[0];
-            // }
-            string[] temp = new string[Disruptions.Length - 1];
-            string result = Disruptions[0];
-            for (int i = 0; i < temp.Length; i++)
-            {
-                temp[i] = Disruptions[i + 1];
-            }
-            Disruptions = temp;
-        }
-    }
+    [JsonPropertyName("HostServer")]
+    public string HostServer { get; set; } = "";
 }
