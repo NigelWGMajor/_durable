@@ -192,7 +192,8 @@ create table [rpt].[OperationFlowStates](
     [Reason] [nvarchar](max) NULL,
     [InstanceId] [nvarchar](500) NULL,
     [SequenceNumber] [int] NULL,
-    [Disruptions] nvarchar(max) null
+    [Disruptions] nvarchar(max) null,
+    [HostServer] nvarchar(100) null
     constraint [PK_rpt.ReportFlowStates] primary key clustered ([OperationFlowStateID] asc) with (
         pad_index = off,
         statistics_norecompute = off,
@@ -223,7 +224,8 @@ create table [rpt].[OperationFlowStateHistory](
     [Reason] [nvarchar](max) null,
     [InstanceId] [nvarchar](500) null,
     [SequenceNumber] [int] null,
-    [Disruptions] nvarchar(max) null
+    [Disruptions] nvarchar(max) null,
+    [HostServer] nvarchar(100) null
     constraint [PK_rpt.OperationFlowStateHistory] primary key clustered ([OperationFlowStateHistoryID] asc) with (
         pad_index = off,
         statistics_norecompute = off,
@@ -252,7 +254,8 @@ select (
             InstanceId,
             [RetryCount],
             SequenceNumber,
-            Disruptions
+            Disruptions,
+            HostServer
         from rpt.OperationFlowStates
         where UniqueKey = @UniqueKey for json path,
             without_array_wrapper
@@ -277,6 +280,7 @@ merge rpt.OperationFlowStates as target using (
         json_value(@json, '$.RetryCount') as [RetryCount],
         json_value(@json, '$.SequenceNumber') as SequenceNumber,
         json_value(@json, '$.Disruptions') as Disruptions,
+        json_value(@json, '$.HostServer') as HostServer,
         @Timestamp as TimeUpdated
 ) as source on (target.UniqueKey = source.UniqueKey)
 when matched then
@@ -292,6 +296,7 @@ set OperationName = source.OperationName,
     SequenceNumber = source.SequenceNumber,
     [RetryCount] = source.[RetryCount],
     Disruptions = source.Disruptions,
+    HostServer = source.HostServer,
     TimeUpdated = source.TimeUpdated -- we only save the start time in when the record is first made.
 when not matched then
 insert (
@@ -307,6 +312,7 @@ insert (
         InstanceId,
         SequenceNumber,
         Disruptions,
+        HostServer,
         TimeUpdated,
         [RetryCount]
     )
@@ -323,6 +329,7 @@ values (
         source.InstanceId,
         source.SequenceNumber,
         source.Disruptions,
+        source.HostServer,
         source.TimeUpdated,
         source.[RetryCount]
     );
@@ -341,6 +348,7 @@ insert into rpt.OperationFlowStateHistory (
         [RetryCount],
         SequenceNumber,
         Disruptions,
+        HostServer,
         TimeUpdated
     )
 values (
@@ -357,6 +365,7 @@ values (
         json_value(@json, '$.RetryCount'),
         json_value(@json, '$.SequenceNumber'),
         json_value(@json, '$.Disruptions'),
+        json_value(@json, '$.HostServer'),
         cast(@Timestamp as DateTime2)
     )
 if (json_value(@json, '$.ActivityState') > 8)
@@ -403,8 +412,8 @@ create table [rpt].[ActivitySettings](
 	[MaximumDelay] [float] null,
 	[RetryTimeout] [float] null,
 	[ActivityTimeout] [float] null,
-	[IsIOIntensive] [bit] null,
-	[IsMemoryIntensive] [bit] null,
+  [LoadFactor] float null,
+  [MaximumDelayCount] int null,
 	[PartitionId] [int] null,
  constraint [PK_ActivitySettings] primary key clustered 
 (
@@ -421,51 +430,53 @@ set identity_insert [rpt].[ActivitySettings] on
 go
 insert [rpt].[ActivitySettings] 
   ([ActivitySettingsId], [ActivityName], [NumberOfRetries], [InitialDelay], [BackOffCoefficient], 
-  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [IsIOIntensive], [IsMemoryIntensive], [PartitionId]) 
-values (1, N'Default', 8, 0.1, 1.4142, 2.5, 24, 1, 0, 0, 0)
+  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [LoadFactor], [MaximumDelayCount], [PartitionId]) 
+values (1, N'Default', 8, 0.1, 1.4142, 2.5, 24, 1, 0.0, 8, 0)
 go
 insert [rpt].[ActivitySettings] 
   ([ActivitySettingsId], [ActivityName], [NumberOfRetries], [InitialDelay], [BackOffCoefficient], 
-  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [IsIOIntensive], [IsMemoryIntensive], [PartitionId]) 
-values (2, N'Test', 3, 0.03, 1, null, 0.2, 0.03, 0, 0, 0)
+  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [LoadFactor], [MaximumDelayCount], [PartitionId]) 
+values (2, N'Test', 3, 0.03, 1, null, 0.2, 0.03, 0.0, null, 0)
 go
 insert [rpt].[ActivitySettings] 
   ([ActivitySettingsId], [ActivityName], [NumberOfRetries], [InitialDelay], [BackOffCoefficient], 
-  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [IsIOIntensive], [IsMemoryIntensive], [PartitionId]) 
-values (3, N'ActivityAlpha', 3, 0.03, null, null, 0.2, 0.03, 0, 0, 0)
+  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [LoadFactor], [MaximumDelayCount], [PartitionId]) 
+values (3, N'ActivityAlpha', 3, 0.03, null, null, 0.2, 0.03, 0.0, null, 0)
 go
 insert [rpt].[ActivitySettings] 
   ([ActivitySettingsId], [ActivityName], [NumberOfRetries], [InitialDelay], [BackOffCoefficient], 
-  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [IsIOIntensive], [IsMemoryIntensive], [PartitionId]) 
-values (4, N'ActivityBravo', 3, 0.03, null, null, 0.2, 0.03, 0, 0, 0)
+  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [LoadFactor], [MaximumDelayCount], [PartitionId]) 
+values (4, N'ActivityBravo', 3, 0.03, null, null, 0.2, 0.03, 0.0, null, 0)
 go
 insert [rpt].[ActivitySettings] 
   ([ActivitySettingsId], [ActivityName], [NumberOfRetries], [InitialDelay], [BackOffCoefficient], 
-  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [IsIOIntensive], [IsMemoryIntensive], [PartitionId]) 
-values (5, N'ActivityCharlie', 3, 0.03, null, null, 0.2, 0.03, 0, 0, 0)
+  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [LoadFactor], [MaximumDelayCount], [PartitionId]) 
+values (5, N'ActivityCharlie', 3, 0.03, null, null, 0.2, 0.03, 0.0, null, 0)
 go
 insert [rpt].[ActivitySettings] 
   ([ActivitySettingsId], [ActivityName], [NumberOfRetries], [InitialDelay], [BackOffCoefficient], 
-  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [IsIOIntensive], [IsMemoryIntensive], [PartitionId]) 
-values (6, N'PreProcessAsync', 8, 0.1, 1.4142, null, 24, null, null, null, null)
-go
+  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [LoadFactor], [MaximumDelayCount], [PartitionId]) 
+values (8, N'FinishAsync', 8, 0.1, 1.4142, null, 24, null, 0.0, null, 0)
 insert [rpt].[ActivitySettings] 
   ([ActivitySettingsId], [ActivityName], [NumberOfRetries], [InitialDelay], [BackOffCoefficient], 
-  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [IsIOIntensive], [IsMemoryIntensive], [PartitionId]) 
-values (7, N'PostProcessAsync', 8, 0.1, 1.4142, null, 24, null, null, null, null)
-go
+  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [LoadFactor], [MaximumDelayCount], [PartitionId])  
+values (9, N'Infra', 10, 0.25, 1, 0.25, 24, null, 0.0, null, 0)
 insert [rpt].[ActivitySettings] 
   ([ActivitySettingsId], [ActivityName], [NumberOfRetries], [InitialDelay], [BackOffCoefficient], 
-  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [IsIOIntensive], [IsMemoryIntensive], [PartitionId]) 
-values (8, N'FinishAsync', 8, 0.1, 1.4142, null, 24, null, null, null, null)
+  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [LoadFactor], [MaximumDelayCount], [PartitionId]) 
+values (10, N'InfraTest', 2, 0.03, 1, 0.25, 24, null, 0.0, null, 0)
 insert [rpt].[ActivitySettings] 
   ([ActivitySettingsId], [ActivityName], [NumberOfRetries], [InitialDelay], [BackOffCoefficient], 
-  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [IsIOIntensive], [IsMemoryIntensive], [PartitionId]) 
-values (9, N'Infra', 10, 0.25, 1, 0.25, 24, null, null, null, null)
+  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [LoadFactor], [MaximumDelayCount], [PartitionId]) 
+values (11, N'OrchestrationAlpha', 2, 0.03, 1, 0.25, 24, null, null, null, null)
 insert [rpt].[ActivitySettings] 
   ([ActivitySettingsId], [ActivityName], [NumberOfRetries], [InitialDelay], [BackOffCoefficient], 
-  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [IsIOIntensive], [IsMemoryIntensive], [PartitionId]) 
-values (10, N'InfraTest', 2, 0.03, 1, 0.25, 24, null, null, null, null)
+  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [LoadFactor], [MaximumDelayCount], [PartitionId]) 
+values (12, N'OrchestrationBravo', 2, 0.03, 1, 0.25, 24, null, null, null, null)
+insert [rpt].[ActivitySettings] 
+  ([ActivitySettingsId], [ActivityName], [NumberOfRetries], [InitialDelay], [BackOffCoefficient], 
+  [MaximumDelay], [RetryTimeout], [ActivityTimeout], [LoadFactor], [MaximumDelayCount], [PartitionId]) 
+values (13, N'OrchestrationCharlie', 2, 0.03, 1, 0.25, 24, null, null, null, null)
 go
 set identity_insert [rpt].[ActivitySettings] off
 go
@@ -483,8 +494,8 @@ begin
         MaximumDelay,
         RetryTimeout,
         ActivityTimeout,
-        IsIOIntensive,
-        IsMemoryIntensive,
+        LoadFactor,
+        MaximumDelayCount,
         PartitionId
     from
         rpt.ActivitySettings
@@ -501,8 +512,8 @@ begin
         MaximumDelay,
         RetryTimeout,
         ActivityTimeout,
-        IsIOIntensive,
-        IsMemoryIntensive,
+        LoadFactor,
+        MaximumDelayCount,
         PartitionId
     from
         rpt.ActivitySettings
@@ -517,8 +528,8 @@ begin
     isnull(main.MaximumDelay, def.MaximumDelay) MaximumDelay,
     isnull(main.RetryTimeout, def.RetryTimeout) RetryTimeout,
     isnull(main.ActivityTimeout, def.ActivityTimeout) ActivityTimeout,
-    isnull(main.IsIOIntensive, def.IsIOIntensive) IsIOIntensive,
-    isnull(main.IsMemoryIntensive, def.IsMemoryIntensive) IsMemoryIntensive,
+    isnull(main.LoadFactor, def.LoadFactor) LoadFactor,
+    isnull(main.MaximumDelayCount, def.MaximumDelayCount) MaximumDelayCount,
     isnull(main.PartitionId, def.PartitionId) PartitionId
   from
     def left join main on 1 = 1
@@ -544,8 +555,8 @@ begin
         json_value(@json, '$.MaximumDelay') as MaximumDelay,
         json_value(@json, '$.RetryTimeout') as RetryTimeout,
         json_value(@json, '$.ActivityTimeout') as ActivityTimeout,
-        json_value(@json, '$.IsIOIntensive') as IsIOIntensive,
-        json_value(@json, '$.IsMemoryIntensive') as IsMemoryIntensive,
+        json_value(@json, '$.LoadFactor') as LoadFactor,
+        json_value(@json, '$.MaximumDelayCount') as MaximumDelayCount,
         json_value(@json, '$.PartitionId') as PartitionId
     ) as source on (target.ActivityName = source.ActivityName)
     when matched then
@@ -558,8 +569,8 @@ begin
         MaximumDelay = source.MaximumDelay,
         RetryTimeout = source.RetryTimeout,
         ActivityTimeout = source.ActivityTimeout,
-        IsIOIntensive = source.IsIOIntensive,
-        IsMemoryIntensive = source.IsMemoryIntensive,
+        LoadFactor = source.LoadFactor,
+        MaximumDelayCount = source.MaximumDelayCount,
         PartitionId = source.PartitionId
     when not matched then
       insert
@@ -571,8 +582,8 @@ begin
         MaximumDelay,
         RetryTimeout,
         ActivityTimeout,
-        IsIOIntensive,
-        IsMemoryIntensive,
+        LoadFactor,
+        MaximumDelayCount,
         PartitionId
       )
       values
@@ -584,8 +595,8 @@ begin
         source.MaximumDelay,
         source.RetryTimeout,
         source.ActivityTimeout,
-        source.IsIOIntensive,
-        source.IsMemoryIntensive,
+        source.LoadFactor,
+        source.MaximumDelayCount,
         source.PartitionId
       );
 end

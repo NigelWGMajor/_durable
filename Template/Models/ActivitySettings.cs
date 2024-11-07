@@ -19,11 +19,11 @@ namespace Models
         [JsonPropertyName("ActivityTimeout")]
         public double? ActivityTimeout { get; set; } // = TimeSpan.FromHours(1);
         // increases the number of retries to 10
-        [JsonPropertyName("IsIOIntensive")]
-        public bool? IsIOIntensive { get; set; } // = false;
+        [JsonPropertyName("LoadFactor")]
+        public double LoadFactor { get; set; } // = false;
         // increases the InitialDelay to 0.2
-        [JsonPropertyName("IsMemoryIntensive")]
-        public bool? IsMemoryIntensive { get; set; } // = false;
+        [JsonPropertyName("MaximumDelayCount")]
+        public int MaximumDelayCount { get; set; } // = false;
         [JsonPropertyName("PartitionId")]
         public int? PartitionId { get; set; } // = 0;
            
