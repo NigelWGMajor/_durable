@@ -152,6 +152,7 @@ public class SafeActivity
             case ActivityState.unknown:
                 _current.ActivityName = _product.ActivityName;
                 _current.OperationName = _product.Name;
+                _current.HostServer = _product.HostServer;
                 _current.SequenceNumber = 0;
                 _current.State = ActivityState.Ready;
                 _current.DisruptionArray = (string[])_product.Disruptions.Clone();

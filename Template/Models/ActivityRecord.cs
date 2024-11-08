@@ -61,13 +61,17 @@ namespace Degreed.SafeTest
         public string Disruptions
         {
             get => string.Join("|", DisruptionArray);
-            set => DisruptionArray= value.Split('|');
+            set => DisruptionArray = value.Split('|');
         }
+
         [JsonIgnore]
         public string[] DisruptionArray { get; set; } = new string[] { };
+
+        [JsonPropertyName("HostServer")]
+        public string HostServer { get; set; } = "";
     }
 
-    //[DebuggerStepThrough]
+    [DebuggerStepThrough]
     public static class ActivityRecordExtender
     {
         private static readonly string _eol_ = "|";
@@ -130,5 +134,6 @@ namespace Degreed.SafeTest
             product.ActivityHistory.Add(record);
             product.LastState = record.State;
         }
+        /* refactor: extend ActivityRecord to wrap the Metadata access */
     }
 }
