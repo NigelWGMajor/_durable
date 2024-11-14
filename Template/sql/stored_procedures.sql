@@ -3,11 +3,8 @@
 -----------------------------------------------------------------------------------------------------------------
 use [OperationsLocal]
 go
-
-/****** Object:  StoredProcedure [rpt].[ActivityCanRunNow_Check]    Script Date: 11/8/2024 2:18:50 PM ******/
 set ansi_nulls on
 go
-
 set quoted_identifier on
 go
 
@@ -21,7 +18,7 @@ create table #Data
   MaximumDelayCount	int,
   RetryCount int,
   CurrentLoad float
-)
+);
 insert #Data
 exec rpt.LoadStateByUniqueKey_Read @UniqueKey;
 
@@ -29,25 +26,25 @@ select case
   when d.RetryCount >= d.MaximumDelayCount then 0
   when d.LoadFactor + d.CurrentLoad > 1.0 then 0
   else 1 end  MayRun
-  from #data d
+  from #data d;
 
-drop table #data
+drop table #data;
 end
 go
 
 ------------------------------------------------------
-use [OperationsLocal]
+use [OperationsLocal];
 go
 
 /****** Object:  StoredProcedure [rpt].[ActivitySettings_Read]    Script Date: 11/8/2024 2:19:26 PM ******/
-set ansi_nulls on
+set ansi_nulls on;
 go
 
-set quoted_identifier on
+set quoted_identifier on;
 go
 
 -- add read proc for settings
-create or alter   procedure [rpt].[ActivitySettings_Read] @ActivityName nvarchar(100)
+create or alter procedure [rpt].[ActivitySettings_Read] @ActivityName nvarchar(100)
 as
 begin
   with def as (
@@ -100,7 +97,7 @@ begin
   from
     def left join main on 1 = 1
     for json auto,   
-      without_array_wrapper
+      without_array_wrapper;
 end
 go
 
@@ -110,13 +107,13 @@ use [OperationsLocal]
 go
 
 /****** Object:  StoredProcedure [rpt].[ActivitySettings_Write]    Script Date: 11/8/2024 2:19:52 PM ******/
-set ansi_nulls on
+set ansi_nulls on;
 go
 
-set quoted_identifier on
+set quoted_identifier on;
 go
 
-create or alter   procedure [rpt].[ActivitySettings_Write] @json nvarchar(max) as 
+create or alter procedure [rpt].[ActivitySettings_Write] @json nvarchar(max) as 
 begin
   set nocount on;
   merge rpt.ActivitySettings as target 
@@ -181,10 +178,10 @@ use [OperationsLocal]
 go
 
 /****** Object:  StoredProcedure [rpt].[CurrentLoad_Read]    Script Date: 11/8/2024 2:20:13 PM ******/
-set ansi_nulls on
+set ansi_nulls on;
 go
 
-set quoted_identifier on
+set quoted_identifier on;
 go
 
 create or alter procedure [rpt].[CurrentLoad_Read]
@@ -202,22 +199,22 @@ where HostServer = @HostServer
 and (
 ActivityStateName = 'Active' 
 or ActivityStateName = 'Ready'
-)
+);
 end
 go
 ------------------------------------------------------
 
-use [OperationsLocal]
+use [OperationsLocal];
 go
 
 /****** Object:  StoredProcedure [rpt].[EmulateActivity]    Script Date: 11/8/2024 2:20:50 PM ******/
-set ansi_nulls on
+set ansi_nulls on;
 go
 
-set quoted_identifier on
+set quoted_identifier on;
 go
 
-create or alter   procedure [rpt].[EmulateActivity]
+create or alter procedure [rpt].[EmulateActivity]
   @UniqueKey nvarchar(100),       -- o--++
   @State nvarchar(3) = 'act',     -- Act, Red, Def, Com, Stu, Sta, Fai, Suc, Uns 
   @Activity nvarchar(1) = 'a',    -- a, b, c 
@@ -232,7 +229,7 @@ set ansi_nulls on;
 
 set quoted_identifier on;
 
-declare @StateId int
+declare @StateId int;
 select @StateId =
 case when @State = 'rea' then 1
   when @State = 'Act' then 2
@@ -244,9 +241,9 @@ case when @State = 'rea' then 1
   when @State = 'Fai' then 8
   when @State = 'Suc' then 9
   when @State = 'Uns' then 10
-end
+end;
 
-declare @StateName nvarchar(20)
+declare @StateName nvarchar(20);
 select @StateName =
 case 
   when @state = 'rea' then 'Ready'
@@ -259,15 +256,15 @@ case
   when @state = 'Fai' then 'Failed'
   when @state = 'Suc' then 'Successful'
   when @state = 'Uns' then 'Unsuccessful'
-end
+end;
 
-declare @ActivityName nvarchar(20)
+declare @ActivityName nvarchar(20);
 select @ActivityName =
 case 
   when @Activity = 'a' then 'ActivityAlpha'
   when @Activity = 'b' then 'ActivityBravo'
   when @Activity = 'c' then 'ActivityCharlie'
-end
+end;
 
 merge rpt.OperationFlowStates as target using
 (
@@ -346,18 +343,17 @@ use [OperationsLocal]
 go
 
 /****** Object:  StoredProcedure [rpt].[LoadSettings_Read]    Script Date: 11/8/2024 2:21:08 PM ******/
-set ansi_nulls on
+set ansi_nulls on;
 go
 
-set quoted_identifier on
+set quoted_identifier on;
 go
 
-create or alter   procedure [rpt].[LoadSettings_Read]
+create or alter procedure [rpt].[LoadSettings_Read]
   @ActivityName nvarchar(100)
 as
-begin --declare @ActivityName nvarchar(100) = 'ActivityBravo';
+begin 
 select top 1
-  --ActivityName, 
   isnull(LoadFactor, DefaultLoadFactor) LoadFactor, 
   isNull(MaximumDelayCount, DefaultMaximumDelayCount) MaximumDelayCount
 from rpt.ActivitySettings s 
@@ -369,7 +365,7 @@ left join
 from rpt.ActivitySettings d 
 where d.ActivityName = 'Default'
 ) as D  on 1=1
-where ActivityName = @ActivityName
+where ActivityName = @ActivityName;
 end
 go
 
@@ -379,13 +375,13 @@ use [OperationsLocal]
 go
 
 /****** Object:  StoredProcedure [rpt].[LoadSettings_ReadAll]    Script Date: 11/8/2024 2:21:34 PM ******/
-set ansi_nulls on
+set ansi_nulls on;
 go
 
-set quoted_identifier on
+set quoted_identifier on;
 go
 
-create or alter     procedure [rpt].[LoadSettings_ReadAll]
+create or alter procedure [rpt].[LoadSettings_ReadAll]
 as
 begin
 select 
@@ -400,23 +396,23 @@ left join
   MaximumDelayCount DefaultMaximumDelayCount 
 from rpt.ActivitySettings d 
 where d.ActivityName = 'Default'
-) as D  on 1=1
+) as D on 1=1;
 end
 go
 
 ------------------------------------------------------
 
-use [OperationsLocal]
+use [OperationsLocal];
 go
 
 /****** Object:  StoredProcedure [rpt].[LoadStateByUniqueKey_Read]    Script Date: 11/8/2024 2:22:13 PM ******/
-set ansi_nulls on
+set ansi_nulls on;
 go
 
-set quoted_identifier on
+set quoted_identifier on;
 go
 
-create or alter   procedure [rpt].[LoadStateByUniqueKey_Read]
+create or alter procedure [rpt].[LoadStateByUniqueKey_Read]
    @UniqueKey nvarchar(100)
 as begin
 declare @HostServer nvarchar(100);
@@ -437,7 +433,8 @@ select
   from rpt.ActivitySettings d 
   where d.ActivityName = 'Default'
 ) as xxx on 1=1
-where f.UniqueKey = @UniqueKey) 
+where f.UniqueKey = @UniqueKey
+) 
 , bb as
 (
 select 
@@ -447,7 +444,7 @@ select
   where ActivityStateName in ('Active', 'Ready')
   and HostServer = @HostServer
 ) 
-select * from aa join bb on 1=1 
+select * from aa join bb on 1=1;
 end
 go
 
@@ -463,7 +460,7 @@ go
 set quoted_identifier on
 go
 
-create or alter   procedure [rpt].[OperationFlowState_Purge] as 
+create or alter procedure [rpt].[OperationFlowState_Purge] as 
 begin
 set nocount on;
 delete from rpt.OperationFlowStates
@@ -475,17 +472,17 @@ go
 
 ------------------------------------------------------
 
-use [OperationsLocal]
+use [OperationsLocal];
 go
 
 /****** Object:  StoredProcedure [rpt].[OperationFlowState_Read]    Script Date: 11/8/2024 2:22:56 PM ******/
-set ansi_nulls on
+set ansi_nulls on;
 go
 
 set quoted_identifier on
 go
 
-CREATE OR ALTER   procedure [rpt].[OperationFlowState_Read] @UniqueKey nvarchar(100) as 
+create or alter procedure [rpt].[OperationFlowState_Read] @UniqueKey nvarchar(100) as 
 begin
 set nocount on;
 select (
@@ -502,7 +499,8 @@ select (
             [RetryCount],
             SequenceNumber,
             Disruptions,
-            HostServer
+            HostServer,
+            PrevailingLoadFactor
         from rpt.OperationFlowStates
         where UniqueKey = @UniqueKey for json path,
             without_array_wrapper
@@ -512,20 +510,28 @@ go
 
 ------------------------------------------------------
 
-use [OperationsLocal]
+use [OperationsLocal];
 go
 
 /****** Object:  StoredProcedure [rpt].[OperationFlowState_Write]    Script Date: 11/8/2024 2:23:27 PM ******/
-set ansi_nulls on
+set ansi_nulls on;
 go
 
-set quoted_identifier on
+set quoted_identifier on;
 go
 
-create or alter   procedure [rpt].[OperationFlowState_Write] @json nvarchar(max) as 
+create or alter procedure [rpt].[OperationFlowState_Write] @json nvarchar(max) as 
 begin
 set nocount on;
 declare @Timestamp datetime2 = GetUtcDate();
+declare @PrevailingLoadFactor float = (
+    select sum(LoadFactor)
+    from rpt.ActivitySettings as s
+    right join rpt.OperationFlowStates fs
+    on s.ActivityName = fs.ActivityName
+    where ActivityStateName in ('Active', 'Ready')
+    and HostServer = json_value(@json, '$.HostServer')
+);
 merge rpt.OperationFlowStates as target using (
     select json_value(@json, '$.UniqueKey') as UniqueKey,
         json_value(@json, '$.OperationName') as OperationName,
@@ -541,6 +547,7 @@ merge rpt.OperationFlowStates as target using (
         json_value(@json, '$.SequenceNumber') as SequenceNumber,
         json_value(@json, '$.Disruptions') as Disruptions,
         json_value(@json, '$.HostServer') as HostServer,
+        @PrevailingLoadFactor as PrevailingLoadFactor,
         @Timestamp as TimeUpdated
 ) as source on (target.UniqueKey = source.UniqueKey)
 when matched then
@@ -557,6 +564,7 @@ set OperationName = source.OperationName,
     [RetryCount] = source.[RetryCount],
     Disruptions = source.Disruptions,
     HostServer = source.HostServer,
+    PrevailingLoadFactor = source.PrevailingLoadFactor,
     TimeUpdated = source.TimeUpdated -- we only save the start time in when the record is first made.
 when not matched then
 insert (
@@ -573,6 +581,7 @@ insert (
         SequenceNumber,
         Disruptions,
         HostServer,
+        PrevailingLoadFactor,
         TimeUpdated,
         [RetryCount]
     )
@@ -590,10 +599,11 @@ values (
         source.SequenceNumber,
         source.Disruptions,
         source.HostServer,
+        PrevailingLoadFactor,
         source.TimeUpdated,
         source.[RetryCount]
     );
-;
+
 insert into rpt.OperationFlowStateHistory (
         UniqueKey,
         OperationName,
@@ -609,6 +619,7 @@ insert into rpt.OperationFlowStateHistory (
         SequenceNumber,
         Disruptions,
         HostServer,
+        PrevailingLoadFactor,
         TimeUpdated
     )
 values (
@@ -626,8 +637,10 @@ values (
         json_value(@json, '$.SequenceNumber'),
         json_value(@json, '$.Disruptions'),
         json_value(@json, '$.HostServer'),
+        @PrevailingLoadFactor,
         cast(@Timestamp as DateTime2)
-    )
+    );
+-- if finished, the retry count is the max of all retries    
 if (json_value(@json, '$.ActivityState') > 8)
 begin
    declare @maxRetries int = (
@@ -637,24 +650,64 @@ begin
    );
 update rpt.OperationFlowStates 
 set RetryCount = @maxRetries 
-where UniqueKey = json_value(@json, '$.UniqueKey')
+where UniqueKey = json_value(@json, '$.UniqueKey');
+-- then we also want to copy this record to the final table
+-- but the record in the main table will remain until we purge, 
+-- to prevent reentrancy
+insert into rpt.OperationFlowStatesFinal (
+        UniqueKey,
+        OperationName,
+        ActivityName,
+        TimeStarted,
+        TimeEnded,
+        ActivityState,
+        ActivityStateName,
+        Trace,
+        Reason,
+        InstanceId,
+        [RetryCount],
+        SequenceNumber,
+        Disruptions,
+        HostServer,
+        PrevailingLoadFactor,
+        TimeUpdated
+    )
+select 
+        UniqueKey,
+        OperationName,
+        ActivityName,
+        TimeStarted,
+        TimeEnded,
+        ActivityState,
+        ActivityStateName,
+        Trace,
+        Reason,
+        InstanceId,
+        [RetryCount],
+        SequenceNumber,
+        Disruptions,
+        HostServer,
+        PrevailingLoadFactor,
+        TimeUpdated
+     from rpt.OperationFlowStates 
+where UniqueKey = json_value(@json, '$.UniqueKey');
 end
 end;
 go
 
 ------------------------------------------------------
 
-use [OperationsLocal]
+use [OperationsLocal];
 go
 
 /****** Object:  StoredProcedure [rpt].[OperationFlowStateHistory_Purge]    Script Date: 11/8/2024 2:23:44 PM ******/
-set ansi_nulls on
+set ansi_nulls on;
 go
 
-set quoted_identifier on
+set quoted_identifier on;
 go
 
-create or alter   procedure [rpt].[OperationFlowStateHistory_Purge] as 
+create or alter procedure [rpt].[OperationFlowStateHistory_Purge] as 
 begin
 set nocount on;
 truncate table rpt.OperationFlowStateHistory;

@@ -68,40 +68,57 @@ end;
 -------------------------------------------------------------------------------------------------------
 print '*** Switching to OperationsLocal database';
 use OperationsLocal;
-go if not exists (
+go 
+if not exists (
     select *
     from sys.schemas
     where name = N'rpt'
-  ) exec ('create schema [rpt] authorization dbo');
-go print '*** Dropping existing tables' -- clear existing tables
-go if exists(
+  ) 
+exec ('create schema [rpt] authorization dbo');
+go 
+print '*** Dropping existing tables' -- clear existing tables
+go 
+if exists(
     select *
     from INFORMATION_SCHEMA.TABLES
     where TABLE_NAME = 'FlowStates'
       and TABLE_SCHEMA = 'rpt'
   ) drop table [rpt].FlowStates;
-go if exists(
+go 
+if exists(
     select *
     from INFORMATION_SCHEMA.TABLES
     where TABLE_NAME = 'OperationFlowStates'
       and TABLE_SCHEMA = 'rpt'
-  ) drop table [rpt].OperationFlowStates;
-go if exists(
+  ) 
+  drop table [rpt].OperationFlowStates;
+go 
+if exists(
     select *
     from INFORMATION_SCHEMA.TABLES
     where TABLE_NAME = 'OperationFlowStateHistory'
       and TABLE_SCHEMA = 'rpt'
   ) drop table [rpt].OperationFlowStateHistory;
-go if exists(
+go 
+if exists(
     select *
     from INFORMATION_SCHEMA.TABLES
     where TABLE_NAME = 'ActivitySettings'
       and TABLE_SCHEMA = 'rpt'
   ) drop table [rpt].ActivitySettings;
+go 
+if exists(
+    select *
+    from INFORMATION_SCHEMA.TABLES
+    where TABLE_NAME = 'OperationFlowStateFinal'
+      and TABLE_SCHEMA = 'rpt'
+  ) 
+  drop table [rpt].OperationFlowStateFinal;
 -------------------------------------------------------------------------------------------------------
 go -- create FlowStates table to define friendly names of allowed states
   print '*** Creating FlowStates table'
-go create table [rpt].[FlowStates](
+go 
+create table [rpt].[FlowStates](
     [FlowStateId] [tinyint] identity(0, 1) not null,
     [FlowStateName] [nvarchar](100) not null,
     constraint [PK_rpt.FlowStates] primary key CLUSTERED ([FlowStateId] asc) with (
@@ -113,7 +130,8 @@ go create table [rpt].[FlowStates](
       optimize_for_sequential_key = off
     ) ON [PRIMARY]
   ) on [primary];
-go print '*** Inserting predefined flow states';
+go 
+print '*** Inserting predefined flow states';
 go -- populate FlowStates table
 insert into rpt.FlowStates(FlowStateName)
 values ('unknown');
@@ -140,7 +158,8 @@ values ('Unsuccessful');
 -------------------------------------------------------------------------------------------------------
 -- create OperationFlowStates table to house runtime flow states
 print '*** Creating OperationFlowStates table';
-go create table [rpt].[OperationFlowStates](
+go 
+create table [rpt].[OperationFlowStates](
     [OperationFlowStateID] [bigint] identity(1, 1) NOT NULL,
     [UniqueKey] [nvarchar](100) NOT NULL,
     [OperationName] [nvarchar](100) NULL,
@@ -156,7 +175,9 @@ go create table [rpt].[OperationFlowStates](
     [InstanceId] [nvarchar](500) NULL,
     [SequenceNumber] [int] NULL,
     [Disruptions] nvarchar(max) null,
-    [HostServer] nvarchar(100) null constraint [PK_rpt.ReportFlowStates] primary key clustered ([OperationFlowStateID] asc) with (
+    [HostServer] nvarchar(100) null,
+    [PrevailingLoadFactor] float null
+     constraint [PK_rpt.ReportFlowStates] primary key clustered ([OperationFlowStateID] asc) with (
       pad_index = off,
       statistics_norecompute = off,
       ignore_dup_key = off,
@@ -171,7 +192,8 @@ add constraint [DF_ReportFlowStates_ActivityState] default ((0)) for [ActivitySt
 -------------------------------------------------------------------------------------------------------
 go -- create history table
   print '*** Creating OperationFlowStatesHistory table';
-go create table [rpt].[OperationFlowStateHistory](
+go 
+create table [rpt].[OperationFlowStateHistory](
     [OperationFlowStateHistoryID] [bigint] identity(1, 1) not null,
     [UniqueKey] [nvarchar](100) not null,
     [OperationName] [nvarchar](100) null,
@@ -187,7 +209,9 @@ go create table [rpt].[OperationFlowStateHistory](
     [InstanceId] [nvarchar](500) null,
     [SequenceNumber] [int] null,
     [Disruptions] nvarchar(max) null,
-    [HostServer] nvarchar(100) null constraint [PK_rpt.OperationFlowStateHistory] primary key clustered ([OperationFlowStateHistoryID] asc) with (
+    [HostServer] nvarchar(100) null,
+    [PrevailingLoadFactor] float null
+     constraint [PK_rpt.OperationFlowStateHistory] primary key clustered ([OperationFlowStateHistoryID] asc) with (
       pad_index = off,
       statistics_norecompute = off,
       ignore_dup_key = off,
@@ -198,11 +222,45 @@ go create table [rpt].[OperationFlowStateHistory](
   ) on [primary] textimage_on [primary];
 go 
 -------------------------------------------------------------------------------------------------------
--- create settings table
+go -- create finaly table
+  print '*** Creating OperationFlowStateFinal table';
+go 
+create table [rpt].[OperationFlowStateFinal](
+    [OperationFlowStateFinalID] [bigint] identity(1, 1) not null,
+    [UniqueKey] [nvarchar](100) not null,
+    [OperationName] [nvarchar](100) null,
+    [ActivityName] [nvarchar](100) not null,
+    [TimeStarted] [datetime2](7) null,
+    [TimeEnded] [datetime2](7) null,
+    [TimeUpdated] [datetime2](7) null,
+    [ActivityState] [tinyint] null,
+    [ActivityStateName] [nvarchar](100) null,
+    [RetryCount] [int] null,
+    [Trace] [nvarchar](max) null,
+    [Reason] [nvarchar](max) null,
+    [InstanceId] [nvarchar](500) null,
+    [SequenceNumber] [int] null,
+    [Disruptions] nvarchar(max) null,
+    [HostServer] nvarchar(100) null,
+    [PrevailingLoadFactor] float null
+     constraint [PK_rpt.OperationFlowStateFinal] primary key clustered ([OperationFlowStateFinalID] asc) with (
+      pad_index = off,
+      statistics_norecompute = off,
+      ignore_dup_key = off,
+      allow_row_locks = on,
+      allow_page_locks = on,
+      optimize_for_sequential_key = off
+    ) on [primary]
+  ) on [primary] textimage_on [primary];
+go 
+-------------------------------------------------------------------------------------------------------
+go -- create settings table
+
 set ansi_nulls on
 go
 set quoted_identifier on
-go create table [rpt].[ActivitySettings](
+go 
+create table [rpt].[ActivitySettings](
     [ActivitySettingsId] [int] identity(1, 1) not null,
     [ActivityName] [nvarchar](100) not null,
     [NumberOfRetries] [int] null,
