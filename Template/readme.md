@@ -47,6 +47,10 @@ Be patient, as long as you are not seeing red messages.
 ... when a blue line like 
 `Host lock lease acquired by instance ID '00000000000000000000000071EE63C5'.` shows, you are ready to test.
 
+## Gotchas
+
+When working with Azurite, if you test the "Crash" disruption, the Azurite may become weird and run through steps without actually hitting the database. For that reason, anything which throws Durable Orchestration exceptions (i.e. higher than at the activity level) should be integration tested on its own.
+
 ## SSMS
 
 Copy the ViewData.sql script to a query window in SSMS.

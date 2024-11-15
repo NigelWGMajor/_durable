@@ -43,11 +43,16 @@ Content-Type: application/json
 
 {
     "name":"Normal_operation_should_finish_successfully", 
-    "uniqueKey":"1001"
+    "uniqueKey":"1001",
+    "externalData":"Just included to verify that the interface is accepted"  
 }
-/*
-### parallel
-*/
+
+HTTP/1.1 200  - OK
+connection: close
+content-type: application/json; charset=utf-8
+date: Thu, 07 Nov 2024 18:11:05 GMT
+server: Kestrel
+transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -56,9 +61,13 @@ Content-Type: application/json
     "name":"Parallel_operation_should_finish_successfully", 
     "uniqueKey":"1002"
 }
-/*
-### Re-entrant
-*/
+
+HTTP/1.1 200  - OK
+connection: close
+content-type: application/json; charset=utf-8
+date: Thu, 07 Nov 2024 18:11:06 GMT
+server: Kestrel
+transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -67,9 +76,13 @@ Content-Type: application/json
     "name":"Normal_operation_should_finish_successfully_despite_reentrant_calls", 
     "uniqueKey":"1003"
 }
-/*
 
-*/
+HTTP/1.1 200  - OK
+connection: close
+content-type: application/json; charset=utf-8
+date: Thu, 07 Nov 2024 18:11:06 GMT
+server: Kestrel
+transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -78,158 +91,198 @@ Content-Type: application/json
     "name":"Redundant_operation_call_should_be_ignored", 
     "uniqueKey":"1003"
 }
-/*
-### Wait
-*/
+
+HTTP/1.1 200  - OK
+connection: close
+content-type: application/json; charset=utf-8
+date: Thu, 07 Nov 2024 18:11:06 GMT
+server: Kestrel
+transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
     "name":"Wait_should_inject_a_metadata_failure", 
-    "uniqueKey":"2010",
+    "uniqueKey":"1004",
     "disruptions":[
         "Wait"
     ]
 }
-/*
-### Crash
-*/
-###
-POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
-Content-Type: application/json
 
-{
-    "name":"Crash_should_inject_orchestrator_exception", 
-    "uniqueKey":"2011",
-    "disruptions":[
-        "Crash" 
-    ]
-}
-/*
-### Pass
-
-*/
+HTTP/1.1 200  - OK
+connection: close
+content-type: application/json; charset=utf-8
+date: Thu, 07 Nov 2024 18:11:07 GMT
+server: Kestrel
+transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
     "name":"Pass_explicit_or_implied_allows_activities_to_complete_successfully", 
-    "uniqueKey":"2012",
+    "uniqueKey":"1005",
     "disruptions":[
-        "",
-        "Pass" 
+        "Pass"
     ]
 }
-/*
-### Stall
 
-*/
+HTTP/1.1 200  - OK
+connection: close
+content-type: application/json; charset=utf-8
+date: Thu, 07 Nov 2024 18:11:07 GMT
+server: Kestrel
+transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
     "name":"Stall_should_inject_non_fatal_error_in_activity", 
-    "uniqueKey":"2013",
+    "uniqueKey":"1006",
     "disruptions":[
-        "",
+        "None",
         "Stall",
         "Stall",
         "Stall"
     ]
 }
-/*
-### Fail
-*/
+
+HTTP/1.1 200  - OK
+connection: close
+content-type: application/json; charset=utf-8
+date: Thu, 07 Nov 2024 18:11:07 GMT
+server: Kestrel
+transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
     "name":"Fail_should_inject_fatal_error_in_activity", 
-    "uniqueKey":"2014",
+    "uniqueKey":"1007",
     "disruptions":[
-        "Pass",
-        "Fail"
+         "Fail"
     ]
 }
-/*
-### Drag
 
-*/
+HTTP/1.1 200  - OK
+connection: close
+content-type: application/json; charset=utf-8
+date: Thu, 07 Nov 2024 18:11:07 GMT
+server: Kestrel
+transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
     "name":"Drag_should_inject_long_running_activity", 
-    "uniqueKey":"2015",
+    "uniqueKey":"1008",
     "disruptions":[
         "Drag"
     ]
 }
-/*
 
-*/
+HTTP/1.1 200  - OK
+connection: close
+content-type: application/json; charset=utf-8
+date: Thu, 07 Nov 2024 18:11:08 GMT
+server: Kestrel
+transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
     "name":"Reentrant_call_during_drag_should_become_redundant", 
-    "uniqueKey":"2015"
+    "uniqueKey":"1008"
 }
-/*
-### Stick
-*/
+
+HTTP/1.1 200  - OK
+connection: close
+content-type: application/json; charset=utf-8
+date: Thu, 07 Nov 2024 18:11:08 GMT
+server: Kestrel
+transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
     "name":"Stick_should_inject_activity_timeout", 
-    "uniqueKey":"2016",
+    "uniqueKey":"1009",
     "disruptions":[
         "Stick"
     ]
 }
-/*
-### Choke
 
-Should delay for resources.
-*/
+HTTP/1.1 200  - OK
+connection: close
+content-type: application/json; charset=utf-8
+date: Thu, 07 Nov 2024 18:11:08 GMT
+server: Kestrel
+transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
     "name":"Choke_should_defer_initially_for_resources", 
-    "uniqueKey":"2017",
+    "uniqueKey":"1010",
     "disruptions":[
         "Choke"
     ]
 }
-/*
-### Previously Unsuccessful
-*/
+
+HTTP/1.1 200  - OK
+connection: close
+content-type: application/json; charset=utf-8
+date: Thu, 07 Nov 2024 18:11:09 GMT
+server: Kestrel
+transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
     "name":"Call_to_previously_unsuccessful_should_become_redundant", 
-    "uniqueKey":"2014"
+    "uniqueKey":"1007"
 }
-/*
-### Previously Successful
-*/
+
+HTTP/1.1 200  - OK
+connection: close
+content-type: application/json; charset=utf-8
+date: Thu, 07 Nov 2024 18:11:09 GMT
+server: Kestrel
+transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
 
 {
     "name":"Call_to_previously_successful_should_become_redundant", 
-    "uniqueKey":"2014"
+    "uniqueKey":"1002"
 }
+
+HTTP/1.1 200  - OK
+connection: close
+content-type: application/json; charset=utf-8
+date: Thu, 07 Nov 2024 18:11:09 GMT
+server: Kestrel
+transfer-encoding: chunked
+/*
+## Do not run this until everything else has been done!
+*/
+###
+# POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
+# Content-Type: application/json
+
+# {
+#    "name":"Crash_should_inject_orchestrator_exception", 
+#    "uniqueKey":"2011",
+#    "disruptions":[
+#        "Crash" 
+#    ]
+#}

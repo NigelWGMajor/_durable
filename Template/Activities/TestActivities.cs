@@ -1,8 +1,7 @@
 using Microsoft.Azure.Functions.Worker;
 using Degreed.SafeTest;
-using System.Diagnostics;
-using static Activities.BaseActivities;
-using System.Threading.Tasks;
+using Microsoft.DurableTask;
+using static Activities.ActivityHelper;
 
 // TODO: Refactor this class to be non-static and deterministic:
 /* NOTE: These test activities differ only in the calls that are made. */
@@ -21,12 +20,12 @@ public static class TestActivities
     // ActivityState.Failed if the error is fatal or
     // ActivityState.Stalled if the error is recoverable.
     //
-    
+
     # region Processing wrappers
 
     // // RESPONSIBILITIES:
-    // 1. Process the product asychronously
-    // 2. Traige any errors that occur
+    // 1. Process the product asynchronously
+    // 2. Triage any errors that occur
     // 3. Set product.LastState to
     //      successful: ActivityState.Completed
     //      fatal error: ActivityState.Failed
@@ -72,7 +71,7 @@ public static class TestActivities
     // as required by the Azure Functions Worker SDK.
     // They are responsible for calling the actual processing activities
     // and are called by the sub-orchestrators.
-    
+
     // // RESPONSIBILITIES:
     // 1. Define the Function name for the calling sub-orchestrator
     // 2. Call the actual processing activity asynchronously
@@ -84,23 +83,91 @@ public static class TestActivities
         FunctionContext context
     )
     {
-        return await Process(ExecuteAlpha, product);
+        try
+        {
+            return await new SafeActivity(ExecuteAlpha, product).ProcessAsync();
+        }
+        catch (Exception ex)
+        {
+            if (ex is FlowManagerInfraException)
+            {
+                product.LastState = ActivityState.Deferred;
+                product.Errors += ex.Message;
+                return product; // pass back to sub to delay and continue as new
+            }
+            else if (ex is FlowManagerRecoverableException)
+            {
+                throw; // defer to the sub-orchestrator retry policy
+            }
+            else
+            {
+                product.LastState = ActivityState.Failed;
+                product.Errors += ex.Message;
+                return product; // pass back to sub-orchestrator to fail there
+            }
+        }
     }
+
     [Function(nameof(ActivityBravo))]
     public static async Task<Product> ActivityBravo(
         [ActivityTrigger] Product product,
         FunctionContext context
     )
     {
-        return await Process(ExecuteBravo, product);
+        try
+        {
+            return await new SafeActivity(ExecuteBravo, product).ProcessAsync();
+        }
+        catch (Exception ex)
+        {
+            if (ex is FlowManagerInfraException)
+            {
+                product.LastState = ActivityState.Deferred;
+                product.Errors += ex.Message;
+                return product; // pass back to sub to delay and continue as new
+            }
+            else if (ex is FlowManagerRecoverableException)
+            {
+                throw; // defer to the sub-orchestrator retry policy
+            }
+            else
+            {
+                product.LastState = ActivityState.Failed;
+                product.Errors += ex.Message;
+                return product; // pass back to sub-orchestrator to fail there
+            }
+        }
     }
+
     [Function(nameof(ActivityCharlie))]
     public static async Task<Product> ActivityCharlie(
         [ActivityTrigger] Product product,
         FunctionContext context
     )
     {
-         return await Process(ExecuteCharlie, product);
-    } 
+        try
+        {
+            return await new SafeActivity(ExecuteCharlie, product).ProcessAsync();
+        }
+        catch (Exception ex)
+        {
+            if (ex is FlowManagerInfraException)
+            {
+                product.LastState = ActivityState.Deferred;
+                product.Errors += ex.Message;
+                return product; // pass back to sub to delay and continue as new
+            }
+            else if (ex is FlowManagerRecoverableException)
+            {
+                throw; // defer to the sub-orchestrator retry policy
+            }
+            else
+            {
+                product.LastState = ActivityState.Failed;
+                product.Errors += ex.Message;
+                return product; // pass back to sub-orchestrator to fail there
+            }
+        }
+    }
     #endregion // Durable Activities
 }
