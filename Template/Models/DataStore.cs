@@ -247,7 +247,7 @@ public class DataStore : IDataStore
             {
                 await connection.OpenAsync();
                 string queryName = _read_settings_;
-                using (SqlCommand command = new SqlCommand(queryName, connection))
+                using (SqlCommand command = new SqlCommand(_can_run_now_, connection))
                 {
                     command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.Add(

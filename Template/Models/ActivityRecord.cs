@@ -69,6 +69,8 @@ namespace Degreed.SafeTest
 
         [JsonPropertyName("HostServer")]
         public string HostServer { get; set; } = "";
+        [JsonPropertyName("PrevailingLoadFactor")]
+        public double PrevailingLoadFactor { get; set; } = 0.0;
     }
 
     [DebuggerStepThrough]

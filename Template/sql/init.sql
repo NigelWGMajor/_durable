@@ -96,9 +96,9 @@ go
 if exists(
     select *
     from INFORMATION_SCHEMA.TABLES
-    where TABLE_NAME = 'OperationFlowStateHistory'
+    where TABLE_NAME = 'OperationFlowStatesHistory'
       and TABLE_SCHEMA = 'rpt'
-  ) drop table [rpt].OperationFlowStateHistory;
+  ) drop table [rpt].OperationFlowStatesHistory;
 go 
 if exists(
     select *
@@ -110,10 +110,10 @@ go
 if exists(
     select *
     from INFORMATION_SCHEMA.TABLES
-    where TABLE_NAME = 'OperationFlowStateFinal'
+    where TABLE_NAME = 'OperationFlowStatesFinal'
       and TABLE_SCHEMA = 'rpt'
   ) 
-  drop table [rpt].OperationFlowStateFinal;
+  drop table [rpt].OperationFlowStatesFinal;
 -------------------------------------------------------------------------------------------------------
 go -- create FlowStates table to define friendly names of allowed states
   print '*** Creating FlowStates table'
@@ -193,8 +193,8 @@ add constraint [DF_ReportFlowStates_ActivityState] default ((0)) for [ActivitySt
 go -- create history table
   print '*** Creating OperationFlowStatesHistory table';
 go 
-create table [rpt].[OperationFlowStateHistory](
-    [OperationFlowStateHistoryID] [bigint] identity(1, 1) not null,
+create table [rpt].[OperationFlowStatesHistory](
+    [OperationFlowStatesHistoryID] [bigint] identity(1, 1) not null,
     [UniqueKey] [nvarchar](100) not null,
     [OperationName] [nvarchar](100) null,
     [ActivityName] [nvarchar](100) not null,
@@ -211,7 +211,7 @@ create table [rpt].[OperationFlowStateHistory](
     [Disruptions] nvarchar(max) null,
     [HostServer] nvarchar(100) null,
     [PrevailingLoadFactor] float null
-     constraint [PK_rpt.OperationFlowStateHistory] primary key clustered ([OperationFlowStateHistoryID] asc) with (
+     constraint [PK_rpt.OperationFlowStatesHistory] primary key clustered ([OperationFlowStatesHistoryID] asc) with (
       pad_index = off,
       statistics_norecompute = off,
       ignore_dup_key = off,
@@ -223,10 +223,10 @@ create table [rpt].[OperationFlowStateHistory](
 go 
 -------------------------------------------------------------------------------------------------------
 go -- create finaly table
-  print '*** Creating OperationFlowStateFinal table';
+  print '*** Creating OperationFlowStatesFinal table';
 go 
-create table [rpt].[OperationFlowStateFinal](
-    [OperationFlowStateFinalID] [bigint] identity(1, 1) not null,
+create table [rpt].[OperationFlowStatesFinal](
+    [OperationFlowStatesFinalID] [bigint] identity(1, 1) not null,
     [UniqueKey] [nvarchar](100) not null,
     [OperationName] [nvarchar](100) null,
     [ActivityName] [nvarchar](100) not null,
@@ -243,7 +243,7 @@ create table [rpt].[OperationFlowStateFinal](
     [Disruptions] nvarchar(max) null,
     [HostServer] nvarchar(100) null,
     [PrevailingLoadFactor] float null
-     constraint [PK_rpt.OperationFlowStateFinal] primary key clustered ([OperationFlowStateFinalID] asc) with (
+     constraint [PK_rpt.OperationFlowStatesFinal] primary key clustered ([OperationFlowStatesFinalID] asc) with (
       pad_index = off,
       statistics_norecompute = off,
       ignore_dup_key = off,

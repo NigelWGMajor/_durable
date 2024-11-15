@@ -525,7 +525,7 @@ begin
 set nocount on;
 declare @Timestamp datetime2 = GetUtcDate();
 declare @PrevailingLoadFactor float = (
-    select sum(LoadFactor)
+    select isnull(sum(LoadFactor), 0)
     from rpt.ActivitySettings as s
     right join rpt.OperationFlowStates fs
     on s.ActivityName = fs.ActivityName
@@ -604,7 +604,7 @@ values (
         source.[RetryCount]
     );
 
-insert into rpt.OperationFlowStateHistory (
+insert into rpt.OperationFlowStatesHistory (
         UniqueKey,
         OperationName,
         ActivityName,
@@ -645,7 +645,7 @@ if (json_value(@json, '$.ActivityState') > 8)
 begin
    declare @maxRetries int = (
       select max(RetryCount) 
-      from rpt.OperationFlowStateHistory 
+      from rpt.OperationFlowStatesHistory 
       where UniqueKey = json_value(@json, '$.UniqueKey')
    );
 update rpt.OperationFlowStates 
@@ -700,17 +700,17 @@ go
 use [OperationsLocal];
 go
 
-/****** Object:  StoredProcedure [rpt].[OperationFlowStateHistory_Purge]    Script Date: 11/8/2024 2:23:44 PM ******/
+/****** Object:  StoredProcedure [rpt].[OperationFlowStatesHistory_Purge]    Script Date: 11/8/2024 2:23:44 PM ******/
 set ansi_nulls on;
 go
 
 set quoted_identifier on;
 go
 
-create or alter procedure [rpt].[OperationFlowStateHistory_Purge] as 
+create or alter procedure [rpt].[OperationFlowStatesHistory_Purge] as 
 begin
 set nocount on;
-truncate table rpt.OperationFlowStateHistory;
+truncate table rpt.OperationFlowStatesHistory;
 end;
 GO
 
