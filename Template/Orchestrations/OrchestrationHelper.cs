@@ -26,4 +26,8 @@ public static class OrchestrationHelper
         }
         return "unknown";
     }
+    public static DateTime GetFireTime(TimeSpan timeSpan)
+    {
+        return DateTime.UtcNow.Add(timeSpan);
+    }
 }

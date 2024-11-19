@@ -1,14 +1,14 @@
-using Microsoft.Azure.Functions.Worker;
-using Microsoft.Azure.Functions.Worker.Http;
-using Microsoft.DurableTask;
-using Microsoft.DurableTask.Client;
+using Microsoft.Azure.WebJobs;
+using Microsoft.Azure.WebJobs.Extensions.DurableTask;
+using Microsoft.Azure.WebJobs.Extensions.Http;
 using Degreed.SafeTest;
 using static TestActivities;
 using static Activities.ActivityHelper;
 using static Orchestrations.SubOrchestrationAlpha;
 using static Orchestrations.SubOrchestrationBravo;
 using static Orchestrations.SubOrchestrationCharlie;
-using DurableTask.Core.Exceptions;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 
 namespace Orchestrations;
 
@@ -26,8 +26,8 @@ public static class TestOrchestration
     // RESPONSIBILITIES:
     // make constants for each Sub-Orchestration name
     // make a constant for the first activity name
-    // if you are using a custom product change the type references in 
-    // the orchestrations to match the actual product type 
+    // if you are using a custom product change the type references in
+    // the orchestrations to match the actual product type
     // and adjust the Start code at the bottom to match the actual product type
 
     const string _orc_a_name_ = nameof(OrchestrationAlpha);
@@ -37,7 +37,7 @@ public static class TestOrchestration
     const string _infra_settings_name_ = "Infra";
     const string _infra_test_settings_name_ = "InfraTest";
 
-    public static async Task<TaskOptions> GetLocalRetryOptionsAsync(
+    public static async Task<RetryOptions> GetLocalRetryOptionsAsync(
         string activityName,
         Product product
     )
@@ -48,13 +48,14 @@ public static class TestOrchestration
         return await GetRetryOptionsAsync(settingsName, product);
     }
 
-    [Function(nameof(RunTestOrchestrator))]
+    [FunctionName(nameof(RunTestOrchestrator))]
     public static async Task<string> RunTestOrchestrator(
-        [OrchestrationTrigger] TaskOrchestrationContext context
+        [OrchestrationTrigger] IDurableOrchestrationContext context,
+        ILogger logger
     )
     {
-        ILogger logger = context.CreateReplaySafeLogger(nameof(RunTestOrchestrator));
- 
+        ILogger replaySafeLogger = context.CreateReplaySafeLogger(logger);
+
         Product product = new Product("");
         if (!context.IsReplaying)
         {
@@ -65,30 +66,30 @@ public static class TestOrchestration
         string id = context.InstanceId;
 
         context.SetCustomStatus($"{product.LastState}");
-        product = await context.CallSubOrchestratorAsync<Product>(
+        product = await context.CallSubOrchestratorWithRetryAsync<Product>(
             _orc_a_name_,
-            product,
-            await GetLocalRetryOptionsAsync(_orc_a_name_, product)
+            await GetLocalRetryOptionsAsync(_orc_a_name_, product),
+            product
         );
 
         context.SetCustomStatus($"A: {product.LastState}");
-        product = await context.CallSubOrchestratorAsync<Product>(
+        product = await context.CallSubOrchestratorWithRetryAsync<Product>(
             _orc_b_name_,
-            product,
-            await GetLocalRetryOptionsAsync(_orc_b_name_, product)
+            await GetLocalRetryOptionsAsync(_orc_b_name_, product),
+            product
         );
 
         context.SetCustomStatus($"B: {product.LastState}");
-        product = await context.CallSubOrchestratorAsync<Product>(
+        product = await context.CallSubOrchestratorWithRetryAsync<Product>(
             _orc_c_name_,
-            product,
-            await GetLocalRetryOptionsAsync(_orc_c_name_, product)
+            await GetLocalRetryOptionsAsync(_orc_c_name_, product),
+            product
         );
         context.SetCustomStatus($"C: {product.LastState}");
-        product = await context.CallActivityAsync<Product>(
+        product = await context.CallActivityWithRetryAsync<Product>(
             _finish_processor_name_,
-            product,
-            await GetRetryOptionsAsync(_finish_processor_name_, product)
+            await GetRetryOptionsAsync(_finish_processor_name_, product),
+            product
         );
         context.SetCustomStatus($"D: {product.LastState}");
 
@@ -110,16 +111,15 @@ public static class TestOrchestration
     // 5. Log the instance ID
     // 6. Return an HTTP 202 response
 
-    [Function("TestOrchestration_HttpStart")]
-    public static async Task<HttpResponseData> HttpStart(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequestData req,
-        [DurableClient] DurableTaskClient client,
-        FunctionContext executionContext
+    [FunctionName("TestOrchestration_HttpStart")]
+    public static async Task<IActionResult> HttpStart(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequest req,
+        [DurableClient] IDurableOrchestrationClient client,
+        ILogger logger
     )
     {
-        ILogger logger = executionContext.GetLogger("TestOrchestration_HttpStart");
         string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-        var inputData = JsonSerializer.Deserialize<InputPayload>(requestBody);
+        var inputData = System.Text.Json.JsonSerializer.Deserialize<InputPayload>(requestBody);
         var product = new Product(requestBody);
         product.LastState = ActivityState.Ready;
         product.Name = inputData?.Name ?? "";
@@ -127,22 +127,30 @@ public static class TestOrchestration
         product.UniqueKey = inputData?.UniqueKey ?? "";
         product.Disruptions = inputData?.Disruptions ?? new string[0];
         product.HostServer = OrchestrationHelper.IdentifyServer();
-        StartOrchestrationOptions options = new StartOrchestrationOptions
-        {
-            InstanceId =
-                $"Main-{inputData?.Name}-{inputData?.UniqueKey}-{DateTime.UtcNow:yy-MM-ddThh:hh:ss:fff}"
-        };
-        product.InstanceId = options.InstanceId;
-        string instanceId = await client.ScheduleNewOrchestrationInstanceAsync(
-            nameof(RunTestOrchestrator),
-            product,
-            options,
-            CancellationToken.None
-        );
+
+        string instanceId =
+            $"Main-{inputData?.Name}-{inputData?.UniqueKey}-{DateTime.UtcNow:yy-MM-ddThh:hh:ss:fff}";
+
+        //        product.InstanceId = options.InstanceId;
+        instanceId = await client.StartNewAsync(nameof(RunTestOrchestrator), instanceId, product);
         logger.LogInformation("Started orchestration with ID = '{instanceId}'.", instanceId);
-        var response = req.CreateResponse(System.Net.HttpStatusCode.Accepted);
-        await response.WriteAsJsonAsync(new { instanceId });
-        return response;
+
+        var response = new
+        {
+            instanceId,
+            statusQueryGetUri = client.CreateHttpManagementPayload(instanceId).StatusQueryGetUri
+        };
+        var checkStatusResponse = client.CreateCheckStatusResponse(req, instanceId) as ObjectResult;
+        if (checkStatusResponse == null)
+        {
+            return new BadRequestResult();
+        }
+        else
+        {
+            return new AcceptedResult(
+                checkStatusResponse.Value.ToString(), response
+            );
+        }
     }
     #endregion // HTTP Endpoint for Test Orchestration
 }

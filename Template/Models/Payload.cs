@@ -4,7 +4,6 @@
 
 // The IPayload defines what is explicitly needed by the FlowManager framework.
 
-using Degreed.SafeTest;
 using System.Diagnostics;
 
 public interface IPayload

@@ -1,9 +1,9 @@
 using Degreed.SafeTest;
 using Models;
-using Microsoft.DurableTask;
+using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Azure.Functions.Worker;
 using System.Diagnostics;
+using Microsoft.Azure.WebJobs;
 
 namespace Activities;
 public static class ActivityHelper
@@ -13,7 +13,7 @@ public static class ActivityHelper
     internal const string _finish_processor_name_ = nameof(FinishAsync);
  
     [DebuggerStepThrough]
-    internal static async Task<TaskOptions> GetRetryOptionsAsync(string activityName, Product product)
+    internal static async Task<RetryOptions> GetRetryOptionsAsync(string activityName, Product product)
     {
         if (product.IsDisrupted)
         {
@@ -21,14 +21,16 @@ public static class ActivityHelper
         }
         ActivitySettings settings = await _store.ReadActivitySettingsAsync(activityName);
         product.NextTimeout = TimeSpan.FromHours(settings.ActivityTimeout.GetValueOrDefault());
-        RetryPolicy policy = new RetryPolicy(
-            settings.NumberOfRetries.GetValueOrDefault(),
-            TimeSpan.FromHours(settings.InitialDelay.GetValueOrDefault()),
-            settings.BackOffCoefficient.GetValueOrDefault(),
-            TimeSpan.FromHours(settings.MaximumDelay.GetValueOrDefault()),
-            TimeSpan.FromHours(settings.RetryTimeout.GetValueOrDefault())
-        );
-        return new TaskOptions(TaskRetryOptions.FromRetryPolicy(policy));
+        var retryOptions = new RetryOptions(
+            firstRetryInterval: TimeSpan.FromHours(settings.InitialDelay.GetValueOrDefault()),
+            maxNumberOfAttempts: settings.NumberOfRetries.GetValueOrDefault()
+        )
+        {
+            BackoffCoefficient = settings.BackOffCoefficient.GetValueOrDefault(),
+            MaxRetryInterval = TimeSpan.FromHours(settings.MaximumDelay.GetValueOrDefault()),
+            RetryTimeout = TimeSpan.FromHours(settings.RetryTimeout.GetValueOrDefault())
+        };
+        return retryOptions; ;
     }
     internal static DataStore _store;
 
@@ -57,10 +59,10 @@ public static class ActivityHelper
     /// <param name="product"></param>
     /// <param name="context"></param>
     /// <returns></returns>
-    [Function(nameof(FinishAsync))]
+    [FunctionName(nameof(FinishAsync))]
     public static async Task<Product> FinishAsync(
         [ActivityTrigger] Product product,
-        FunctionContext context
+        IDurableActivityContext context
     )
     {
         if (product.IsRedundant)
@@ -68,7 +70,7 @@ public static class ActivityHelper
             return product;
         }
         var uniqueKey = product.UniqueKey;
-        string iid = context.InvocationId.Substring(0, 8);
+        string iid = context.InstanceId.Substring(0, 8);
         var current = await _store.ReadActivityStateAsync(uniqueKey);
         ; // FINISH
         if (

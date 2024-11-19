@@ -1,11 +1,12 @@
 using System.Diagnostics;
 using System.Text.Json.Serialization;
 using Degreed.SafeTest;
-using Microsoft.Azure.Functions.Worker.Extensions.Abstractions;
-using Microsoft.DurableTask;
-using Microsoft.Identity.Client;
-using Microsoft.Net.Http.Headers;
-using Models;
+using Microsoft.Azure.WebJobs.Extensions.DurableTask;
+//using Microsoft.Azure.Functions.Worker.Extensions.Abstractions;
+//using Microsoft.DurableTask;
+//using Microsoft.Identity.Client;
+//using Microsoft.Net.Http.Headers;
+//using Models;
 
 [DebuggerStepThrough]
 public class Product
@@ -59,7 +60,7 @@ public class Product
     public string NextDisruption { get; set; } = "";
     [JsonPropertyName("Output")]
     public string Output { get; set; } = "";
-    public static Product FromContext(TaskOrchestrationContext context)
+    public static Product FromContext(IDurableOrchestrationContext context)
     {
         return context == null ? 
             new Product("") 

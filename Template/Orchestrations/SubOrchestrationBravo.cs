@@ -1,8 +1,10 @@
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
+
+using Microsoft.Azure.WebJobs;
+using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 using Degreed.SafeTest;
-using Microsoft.Azure.Functions.Worker;
-using Microsoft.DurableTask;
+//using Microsoft.Azure.Functions.Worker;
+
+//using Microsoft.DurableTask;
 using Models;
 using static Activities.ActivityHelper;
 using static TestActivities;
@@ -14,20 +16,21 @@ public static class SubOrchestrationBravo // rename this and the file to match t
     private const string _operation_name_ = nameof(ActivityBravo); // rename this to match the activity name
     private const string _orchestration_name_ = nameof(OrchestrationBravo); // rename this appropriately
 
-    [Function(_orchestration_name_)]
+    [FunctionName(_orchestration_name_)]
     public static async Task<Product> OrchestrationBravo( // Rename this function to match the operation name
-        [OrchestrationTrigger] TaskOrchestrationContext context
+        [OrchestrationTrigger] IDurableOrchestrationContext context,
+        ILogger logger
     )
     {
-        ILogger logger = context.CreateReplaySafeLogger(_orchestration_name_);
+        ILogger replaySafeLogger = context.CreateReplaySafeLogger(logger);
         Product product = context.GetInput<Product>() ?? new Product("");
         product.ActivityName = _operation_name_;
         try
         {
-           var executionTask = context.CallActivityAsync<Product>(
+           var executionTask = context.CallActivityWithRetryAsync<Product>(
                _operation_name_,
-               product,
-               await GetRetryOptionsAsync(_operation_name_, product)
+               await GetRetryOptionsAsync(_operation_name_, product),
+               product
            );
             product = await executionTask;
             if (product.LastState == ActivityState.Stuck)
@@ -37,13 +40,13 @@ public static class SubOrchestrationBravo // rename this and the file to match t
             else if (product.LastState == ActivityState.Deferred)
             {
                 var x = await GetRetryOptionsAsync("InfraTest", product); //! change for prod
-                var t = x?.Retry?.Policy?.FirstRetryInterval;
+                var t = x?.FirstRetryInterval;
                 TimeSpan delay;
                 if (t.HasValue)
                     delay = t.Value;
                 else
                     delay = TimeSpan.FromMinutes(2);
-                await context.CreateTimer(delay, CancellationToken.None);
+                await context.CreateTimer(OrchestrationHelper.GetFireTime(delay), CancellationToken.None);
                 context.ContinueAsNew(product);
                 return product;
             }
@@ -54,13 +57,13 @@ public static class SubOrchestrationBravo // rename this and the file to match t
             else if (product.LastState == ActivityState.Deferred)
             {
                 var x = await GetRetryOptionsAsync("InfraTest", product); //! change for prod
-                var t = x?.Retry?.Policy?.FirstRetryInterval;
+                var t = x?.FirstRetryInterval;
                 TimeSpan delay;
                 if (t.HasValue)
                     delay = t.Value;
                 else
                     delay = TimeSpan.FromMinutes(2);
-                await context.CreateTimer(delay, CancellationToken.None);
+                await context.CreateTimer(OrchestrationHelper.GetFireTime(delay), CancellationToken.None);
                 context.ContinueAsNew(product);
                 return product;
             }

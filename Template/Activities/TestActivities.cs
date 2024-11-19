@@ -1,7 +1,8 @@
-using Microsoft.Azure.Functions.Worker;
 using Degreed.SafeTest;
-using Microsoft.DurableTask;
 using static Activities.ActivityHelper;
+using Microsoft.Azure.WebJobs;
+using Microsoft.Azure.WebJobs.Extensions.DurableTask;
+using System.Diagnostics;
 
 // TODO: Refactor this class to be non-static and deterministic:
 /* NOTE: These test activities differ only in the calls that are made. */
@@ -77,10 +78,10 @@ public static class TestActivities
     // 2. Call the actual processing activity asynchronously
     // 3. Return the processed product
 
-    [Function(nameof(ActivityAlpha))]
+    [FunctionName(nameof(ActivityAlpha))]
     public static async Task<Product> ActivityAlpha(
         [ActivityTrigger] Product product,
-        FunctionContext context
+        ActivityContext context
     )
     {
         try
@@ -108,10 +109,10 @@ public static class TestActivities
         }
     }
 
-    [Function(nameof(ActivityBravo))]
+    [FunctionName(nameof(ActivityBravo))]
     public static async Task<Product> ActivityBravo(
         [ActivityTrigger] Product product,
-        FunctionContext context
+        ActivityContext context
     )
     {
         try
@@ -139,10 +140,10 @@ public static class TestActivities
         }
     }
 
-    [Function(nameof(ActivityCharlie))]
+    [FunctionName(nameof(ActivityCharlie))]
     public static async Task<Product> ActivityCharlie(
         [ActivityTrigger] Product product,
-        FunctionContext context
+        ActivityContext context
     )
     {
         try

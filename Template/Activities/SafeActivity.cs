@@ -1,9 +1,6 @@
 using Degreed.SafeTest;
-using DurableTask.Core;
-using Microsoft.Azure.Functions.Worker;
-using Microsoft.DurableTask.Worker.Hosting;
+using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Primitives;
 
 public class SafeActivity
 {
