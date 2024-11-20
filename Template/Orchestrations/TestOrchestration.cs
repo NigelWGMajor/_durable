@@ -14,8 +14,6 @@ namespace Orchestrations;
 
 public static class TestOrchestration
 {
-
-
     #region Test Orchestration
 
     // A Test Orchestration using three predefined sub-orchestrations.
@@ -32,17 +30,25 @@ public static class TestOrchestration
     const string _orc_c_name_ = nameof(OrchestrationCharlie);
     const string _first_activity_name_ = nameof(ActivityAlpha);
 
-
     // Retry settings
 
     private static TaskOptions _infraOptions = new TaskOptions(
         retry: new TaskRetryOptions(
+#if DEBUG
+            new RetryPolicy(
+                maxNumberOfAttempts: 2,
+                firstRetryInterval: TimeSpan.FromHours(0.01),
+                backoffCoefficient: 1.0,
+                maxRetryInterval: TimeSpan.FromHours(0.25),
+                retryTimeout: TimeSpan.FromHours(0.25)
+#else
             new RetryPolicy(
                 maxNumberOfAttempts: 10,
                 firstRetryInterval: TimeSpan.FromHours(0.25),
                 backoffCoefficient: 1.0,
                 maxRetryInterval: TimeSpan.FromHours(0.25),
                 retryTimeout: TimeSpan.FromHours(12)
+#endif
             )
         )
     );

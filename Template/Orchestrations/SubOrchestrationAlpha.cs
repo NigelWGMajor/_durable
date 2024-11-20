@@ -14,12 +14,20 @@ public static class SubOrchestrationAlpha // rename this and the file to match t
 
     private static TaskOptions _activityOptions = new TaskOptions(
         retry: new TaskRetryOptions(
+#if DEBUG
             new RetryPolicy(
+                maxNumberOfAttempts: 2,
+                firstRetryInterval: TimeSpan.FromHours(0.01),
+                backoffCoefficient: 1.4142,
+                maxRetryInterval: TimeSpan.FromHours(0.25),
+                retryTimeout: TimeSpan.FromHours(0.25)
+#else
                 maxNumberOfAttempts: 8,
                 firstRetryInterval: TimeSpan.FromHours(0.1),
                 backoffCoefficient: 1.4142,
                 maxRetryInterval: TimeSpan.FromHours(2.5),
                 retryTimeout: TimeSpan.FromHours(12)
+#endif
             )
         )
     );

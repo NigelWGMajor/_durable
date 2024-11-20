@@ -19,8 +19,8 @@ public class SafeActivity
         /* THIS IS PENDING THE DATA MODIFICATIONS TO THE ACTIVITY SETTINGS to include the load factor. */
         /* Also needs a stored procedure to get the current activity load  */
         /* We should make this abstract by having the total load in the 0 - 1.0 range */
-        return await _store.CanActivityRunNowAsync(_current);
-        //return false;
+        var mayRun =  await _store.CanActivityRunNowAsync(_current);
+        return !mayRun;
     }
 
     public SafeActivity(Func<Product, Task<Product>> executable, Product product)
@@ -97,7 +97,7 @@ public class SafeActivity
             return;
         // If the system is overloaded, we can defer the activity.
         _current = await _store.ReadActivityStateAsync(_product.UniqueKey);
-        if (await IsCapacityCompromisedAsync())
+        if (_current.State != ActivityState.unknown && (await IsCapacityCompromisedAsync()))
         {
             _current.RetryCount++;
             _current.State = ActivityState.Deferred;

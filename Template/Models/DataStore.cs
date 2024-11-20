@@ -15,8 +15,7 @@ public interface IDataStore
     Task WriteActivitySettingsAsync(ActivitySettings settings);
     Task<bool> CanActivityRunNowAsync(ActivityRecord record);
 }
-
-[DebuggerStepThrough]
+//[DebuggerStepThrough]
 public class DataStore : IDataStore
 {
     public bool IsValid { get; private set; }
@@ -238,10 +237,10 @@ public class DataStore : IDataStore
     }
     private async Task<bool> CanActivityRunNowInternalAsync(ActivityRecord record)
     {
-              try
+        try
         {
             //string? json = "";
-            bool result = false; 
+            int result = 0; 
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
@@ -249,28 +248,21 @@ public class DataStore : IDataStore
                 {
                     command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.Add(
-                        new SqlParameter("@ActivityName", SqlDbType.NVarChar, 100)
+                        new SqlParameter("@UniqueKey", SqlDbType.NVarChar, 100)
                         {
-                            Value = record.ActivityName
+                            Value = record.UniqueKey
                         }
                     );
-                    command.Parameters.Add(
-                        new SqlParameter("@HostServer", SqlDbType.NVarChar, 100)
-                        {
-                            Value = record.HostServer
-                        }
-                    );
-
                     using (SqlDataReader reader = await command.ExecuteReaderAsync())
                     {
                         if (await reader.ReadAsync())
                         {
-                            result = reader.IsDBNull(0) ? true : reader.GetBoolean(0);
+                            result = reader.IsDBNull(0) ? 1 : reader.GetInt32(0);
                         }
                     }
                 }
             }
-            return result;
+            return result == 1;
         }
         catch (Exception ex)
         {
