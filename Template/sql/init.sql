@@ -224,7 +224,7 @@ create table [rpt].[FlowStatesHistory](
   ) on [primary] textimage_on [primary];
 go 
 -------------------------------------------------------------------------------------------------------
-go -- create finaly table
+go -- create final table
   print '*** Creating FlowStatesFinal table';
 go 
 create table [rpt].[FlowStatesFinal](
