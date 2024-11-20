@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 using System.Diagnostics;
 using Models;
 
-namespace Degreed.SafeTest
+namespace Models
 {
     [DebuggerStepThrough]
     public class ActivityRecord

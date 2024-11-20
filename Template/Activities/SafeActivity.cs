@@ -1,9 +1,9 @@
-using Degreed.SafeTest;
 using DurableTask.Core;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask.Worker.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Primitives;
+using Models;
 
 public class SafeActivity
 {
@@ -19,7 +19,6 @@ public class SafeActivity
         /* THIS IS PENDING THE DATA MODIFICATIONS TO THE ACTIVITY SETTINGS to include the load factor. */
         /* Also needs a stored procedure to get the current activity load  */
         /* We should make this abstract by having the total load in the 0 - 1.0 range */
-
 
         return false;
     }

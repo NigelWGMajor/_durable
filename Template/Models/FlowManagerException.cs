@@ -1,5 +1,7 @@
 using System;
 using System.Diagnostics;
+
+namespace Models;
 /// <summary>
 /// A recoverable error, handled by the innermost retry policy.
 /// </summary>

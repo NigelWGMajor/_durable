@@ -1,4 +1,3 @@
-using Degreed.SafeTest;
 using Models;
 using Microsoft.DurableTask;
 using Microsoft.Extensions.Configuration;
@@ -11,25 +10,6 @@ public static class ActivityHelper
     internal static TimeSpan _tiny_delay = TimeSpan.FromSeconds(10);
 
     internal const string _finish_processor_name_ = nameof(FinishAsync);
- 
-    [DebuggerStepThrough]
-    internal static async Task<TaskOptions> GetRetryOptionsAsync(string activityName, Product product)
-    {
-        if (product.IsDisrupted)
-        {
-            activityName = "Test";
-        }
-        ActivitySettings settings = await _store.ReadActivitySettingsAsync(activityName);
-        product.NextTimeout = TimeSpan.FromHours(settings.ActivityTimeout.GetValueOrDefault());
-        RetryPolicy policy = new RetryPolicy(
-            settings.NumberOfRetries.GetValueOrDefault(),
-            TimeSpan.FromHours(settings.InitialDelay.GetValueOrDefault()),
-            settings.BackOffCoefficient.GetValueOrDefault(),
-            TimeSpan.FromHours(settings.MaximumDelay.GetValueOrDefault()),
-            TimeSpan.FromHours(settings.RetryTimeout.GetValueOrDefault())
-        );
-        return new TaskOptions(TaskRetryOptions.FromRetryPolicy(policy));
-    }
     internal static DataStore _store;
 
     [DebuggerStepThrough]

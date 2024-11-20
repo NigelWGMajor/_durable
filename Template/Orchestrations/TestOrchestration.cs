@@ -2,22 +2,19 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.DurableTask;
 using Microsoft.DurableTask.Client;
-using Degreed.SafeTest;
 using static TestActivities;
 using static Activities.ActivityHelper;
 using static Orchestrations.SubOrchestrationAlpha;
 using static Orchestrations.SubOrchestrationBravo;
 using static Orchestrations.SubOrchestrationCharlie;
 using DurableTask.Core.Exceptions;
+using Models;
 
 namespace Orchestrations;
 
 public static class TestOrchestration
 {
-    private static JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
-    {
-        WriteIndented = true
-    };
+
 
     #region Test Orchestration
 
@@ -26,35 +23,38 @@ public static class TestOrchestration
     // RESPONSIBILITIES:
     // make constants for each Sub-Orchestration name
     // make a constant for the first activity name
-    // if you are using a custom product change the type references in 
-    // the orchestrations to match the actual product type 
+    // if you are using a custom product change the type references in
+    // the orchestrations to match the actual product type
     // and adjust the Start code at the bottom to match the actual product type
 
     const string _orc_a_name_ = nameof(OrchestrationAlpha);
     const string _orc_b_name_ = nameof(OrchestrationBravo);
     const string _orc_c_name_ = nameof(OrchestrationCharlie);
     const string _first_activity_name_ = nameof(ActivityAlpha);
-    const string _infra_settings_name_ = "Infra";
-    const string _infra_test_settings_name_ = "InfraTest";
 
-    public static async Task<TaskOptions> GetLocalRetryOptionsAsync(
-        string activityName,
-        Product product
-    )
-    {
-        string settingsName = product.IsDisrupted
-            ? _infra_test_settings_name_
-            : _infra_settings_name_;
-        return await GetRetryOptionsAsync(settingsName, product);
-    }
 
+    // Retry settings
+
+    private static TaskOptions _infraOptions = new TaskOptions(
+        retry: new TaskRetryOptions(
+            new RetryPolicy(
+                maxNumberOfAttempts: 10,
+                firstRetryInterval: TimeSpan.FromHours(0.25),
+                backoffCoefficient: 1.0,
+                maxRetryInterval: TimeSpan.FromHours(0.25),
+                retryTimeout: TimeSpan.FromHours(12)
+            )
+        )
+    );
+
+    // The main orchestration that calls the three sub-orchestrations.
     [Function(nameof(RunTestOrchestrator))]
     public static async Task<string> RunTestOrchestrator(
         [OrchestrationTrigger] TaskOrchestrationContext context
     )
     {
         ILogger logger = context.CreateReplaySafeLogger(nameof(RunTestOrchestrator));
- 
+
         Product product = new Product("");
         if (!context.IsReplaying)
         {
@@ -63,38 +63,44 @@ public static class TestOrchestration
             product.ActivityName = _first_activity_name_;
         }
         string id = context.InstanceId;
-
+        // sub-orchestration A
         context.SetCustomStatus($"{product.LastState}");
         product = await context.CallSubOrchestratorAsync<Product>(
             _orc_a_name_,
             product,
-            await GetLocalRetryOptionsAsync(_orc_a_name_, product)
+            _infraOptions
         );
-
+        // sub-orchestration B
         context.SetCustomStatus($"A: {product.LastState}");
         product = await context.CallSubOrchestratorAsync<Product>(
             _orc_b_name_,
             product,
-            await GetLocalRetryOptionsAsync(_orc_b_name_, product)
+            _infraOptions
         );
-
+        // sub-orchestration C
         context.SetCustomStatus($"B: {product.LastState}");
         product = await context.CallSubOrchestratorAsync<Product>(
             _orc_c_name_,
             product,
-            await GetLocalRetryOptionsAsync(_orc_c_name_, product)
+            _infraOptions
         );
+        // Final processing
         context.SetCustomStatus($"C: {product.LastState}");
         product = await context.CallActivityAsync<Product>(
             _finish_processor_name_,
             product,
-            await GetRetryOptionsAsync(_finish_processor_name_, product)
+            _infraOptions
         );
         context.SetCustomStatus($"D: {product.LastState}");
 
         logger.LogInformation($"**\r\n*** Ended Main Orchestration as {product.LastState} \r\n**");
         return JsonSerializer.Serialize(product.ActivityHistory, _jsonOptions);
     }
+
+    private static JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+    {
+        WriteIndented = true
+    };
 
     #endregion // Main Orchestration
 

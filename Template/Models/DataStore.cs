@@ -4,9 +4,8 @@ using System.Diagnostics;
 using System.Resources;
 using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
-using Models;
 
-namespace Degreed.SafeTest;
+namespace Models;
 
 public interface IDataStore
 {
@@ -246,7 +245,6 @@ public class DataStore : IDataStore
             using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                string queryName = _read_settings_;
                 using (SqlCommand command = new SqlCommand(_can_run_now_, connection))
                 {
                     command.CommandType = CommandType.StoredProcedure;

@@ -1,4 +1,4 @@
-namespace Degreed.SafeTest;
+namespace Models;
 
 public enum ActivityState
 {

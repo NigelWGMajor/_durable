@@ -1,11 +1,8 @@
 using System.Diagnostics;
 using System.Text.Json.Serialization;
-using Degreed.SafeTest;
-using Microsoft.Azure.Functions.Worker.Extensions.Abstractions;
 using Microsoft.DurableTask;
-using Microsoft.Identity.Client;
-using Microsoft.Net.Http.Headers;
-using Models;
+
+namespace Models;
 
 [DebuggerStepThrough]
 public class Product
@@ -70,5 +67,5 @@ public class Product
     [JsonPropertyName("IsRedundant")]
     public bool IsRedundant { get; set; } = false;
     [JsonPropertyName("HostServer")]
-    public string HostServer { get; set; } = "";
+    public string HostServer { get; set; } = "";   
 }

@@ -1,7 +1,7 @@
 using Microsoft.Azure.Functions.Worker;
-using Degreed.SafeTest;
 using Microsoft.DurableTask;
 using static Activities.ActivityHelper;
+using Models;
 
 // TODO: Refactor this class to be non-static and deterministic:
 /* NOTE: These test activities differ only in the calls that are made. */

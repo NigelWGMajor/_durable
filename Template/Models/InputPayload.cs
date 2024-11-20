@@ -1,8 +1,7 @@
-namespace Degreed.SafeTest;
 
 using System.Text.Json.Serialization;
 
-
+namespace Models;
 
 public interface IPayload
 {
@@ -13,14 +12,14 @@ public interface IPayload
 
 public class InputPayload : IPayload
 {
-    [JsonPropertyName("name")]
+    [JsonPropertyName("Name")]
     public string Name { get; set; } = "";
 
-    [JsonPropertyName("uniqueKey")]
+    [JsonPropertyName("UniqueKey")]
     public string UniqueKey { get; set; } = "";
 
-    [JsonPropertyName("disruptions")]
+    [JsonPropertyName("Disruptions")]
     public string[] Disruptions { get; set; } = [];
-    [JsonPropertyName("externalData")]
+    [JsonPropertyName("ExternalData")]
     public string ExternalData { get; set; } = "ExternalTestData";
 }
