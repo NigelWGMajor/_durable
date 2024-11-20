@@ -51,11 +51,6 @@ begin
     select
         top (1) ActivitySettingsId,
         ActivityName,
-        NumberOfRetries,
-        InitialDelay,
-        BackOffCoefficient,
-        MaximumDelay,
-        RetryTimeout,
         ActivityTimeout,
         LoadFactor,
         MaximumDelayCount,
@@ -69,11 +64,6 @@ begin
     select
         top (1) ActivitySettingsId,
         ActivityName,
-        NumberOfRetries,
-        InitialDelay,
-        BackOffCoefficient,
-        MaximumDelay,
-        RetryTimeout,
         ActivityTimeout,
         LoadFactor,
         MaximumDelayCount,
@@ -85,11 +75,6 @@ begin
   )
   select
     isnull(main.ActivityName, @ActivityName) ActivityName,
-	isnull(main.NumberOfRetries, def.NumberOfRetries) NumberOfRetries,
-    isnull(main.InitialDelay, def.InitialDelay) InitialDelay,
-    isnull(main.BackOffCoefficient, def.BackOffCoefficient) BackOffCoefficient,
-    isnull(main.MaximumDelay, def.MaximumDelay) MaximumDelay,
-    isnull(main.RetryTimeout, def.RetryTimeout) RetryTimeout,
     isnull(main.ActivityTimeout, def.ActivityTimeout) ActivityTimeout,
     isnull(main.LoadFactor, def.LoadFactor) LoadFactor,
     isnull(main.MaximumDelayCount, def.MaximumDelayCount) MaximumDelayCount,
@@ -120,11 +105,6 @@ begin
   using (
     select
         json_value(@json, '$.ActivityName') as ActivityName,
-        json_value(@json, '$.NumberOfRetries') as NumberOfRetries,
-        json_value(@json, '$.InitialDelay') as InitialDelay,
-        json_value(@json, '$.BackOffCoefficient') as BackOffCoefficient,
-        json_value(@json, '$.MaximumDelay') as MaximumDelay,
-        json_value(@json, '$.RetryTimeout') as RetryTimeout,
         json_value(@json, '$.ActivityTimeout') as ActivityTimeout,
         json_value(@json, '$.LoadFactor') as LoadFactor,
         json_value(@json, '$.MaximumDelayCount') as MaximumDelayCount,
@@ -134,11 +114,6 @@ begin
       update
       set
         ActivityName = source.ActivityName,
-        NumberOfRetries = source.NumberOfRetries,
-        InitialDelay = source.InitialDelay,
-        BackOffCoefficient = source.BackOffCoefficient,
-        MaximumDelay = source.MaximumDelay,
-        RetryTimeout = source.RetryTimeout,
         ActivityTimeout = source.ActivityTimeout,
         LoadFactor = source.LoadFactor,
         MaximumDelayCount = source.MaximumDelayCount,
@@ -147,11 +122,6 @@ begin
       insert
       (
         ActivityName,
-        NumberOfRetries,
-        InitialDelay,
-        BackOffCoefficient,
-        MaximumDelay,
-        RetryTimeout,
         ActivityTimeout,
         LoadFactor,
         MaximumDelayCount,
@@ -160,11 +130,6 @@ begin
       values
       (
         source.ActivityName,
-        source.NumberOfRetries,
-        source.InitialDelay,
-        source.BackOffCoefficient,
-        source.MaximumDelay,
-        source.RetryTimeout,
         source.ActivityTimeout,
         source.LoadFactor,
         source.MaximumDelayCount,

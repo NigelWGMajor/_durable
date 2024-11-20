@@ -263,11 +263,6 @@ go
 create table [rpt].[ActivitySettings](
     [ActivitySettingsId] [int] identity(1, 1) not null,
     [ActivityName] [nvarchar](100) not null,
-    [NumberOfRetries] [int] null,
-    [InitialDelay] [float] null,
-    [BackOffCoefficient] [float] null,
-    [MaximumDelay] [float] null,
-    [RetryTimeout] [float] null,
     [ActivityTimeout] [float] null,
     [LoadFactor] float null,
     [MaximumDelayCount] int null,
@@ -292,11 +287,6 @@ go
 insert [rpt].[ActivitySettings] (
     [ActivitySettingsId],
     [ActivityName],
-    [NumberOfRetries],
-    [InitialDelay],
-    [BackOffCoefficient],
-    [MaximumDelay],
-    [RetryTimeout],
     [ActivityTimeout],
     [LoadFactor],
     [MaximumDelayCount],
@@ -305,13 +295,8 @@ insert [rpt].[ActivitySettings] (
 values (
     1,
     N'Default',
-    8,
-    0.1,
-    1.4142,
-    2.5,
-    24,
     1,
-    0.0,
+    0.01,
     8,
     0
   )
@@ -319,11 +304,6 @@ go
 insert [rpt].[ActivitySettings] (
     [ActivitySettingsId],
     [ActivityName],
-    [NumberOfRetries],
-    [InitialDelay],
-    [BackOffCoefficient],
-    [MaximumDelay],
-    [RetryTimeout],
     [ActivityTimeout],
     [LoadFactor],
     [MaximumDelayCount],
@@ -332,13 +312,8 @@ insert [rpt].[ActivitySettings] (
 values (
     2,
     N'Test',
-    3,
     0.03,
-    1,
-    null,
-    0.2,
-    0.03,
-    0.0,
+    0.01,
     null,
     0
   )
@@ -346,11 +321,6 @@ go
 insert [rpt].[ActivitySettings] (
     [ActivitySettingsId],
     [ActivityName],
-    [NumberOfRetries],
-    [InitialDelay],
-    [BackOffCoefficient],
-    [MaximumDelay],
-    [RetryTimeout],
     [ActivityTimeout],
     [LoadFactor],
     [MaximumDelayCount],
@@ -359,13 +329,8 @@ insert [rpt].[ActivitySettings] (
 values (
     3,
     N'ActivityAlpha',
-    3,
     0.03,
-    null,
-    null,
     0.2,
-    0.03,
-    0.0,
     null,
     0
   )
@@ -373,11 +338,6 @@ go
 insert [rpt].[ActivitySettings] (
     [ActivitySettingsId],
     [ActivityName],
-    [NumberOfRetries],
-    [InitialDelay],
-    [BackOffCoefficient],
-    [MaximumDelay],
-    [RetryTimeout],
     [ActivityTimeout],
     [LoadFactor],
     [MaximumDelayCount],
@@ -386,13 +346,8 @@ insert [rpt].[ActivitySettings] (
 values (
     4,
     N'ActivityBravo',
-    3,
     0.03,
-    null,
-    null,
-    0.2,
-    0.03,
-    0.0,
+    0.3,
     null,
     0
   )
@@ -400,11 +355,6 @@ go
 insert [rpt].[ActivitySettings] (
     [ActivitySettingsId],
     [ActivityName],
-    [NumberOfRetries],
-    [InitialDelay],
-    [BackOffCoefficient],
-    [MaximumDelay],
-    [RetryTimeout],
     [ActivityTimeout],
     [LoadFactor],
     [MaximumDelayCount],
@@ -413,172 +363,10 @@ insert [rpt].[ActivitySettings] (
 values (
     5,
     N'ActivityCharlie',
-    3,
     0.03,
-    null,
-    null,
-    0.2,
-    0.03,
-    0.0,
+    0.4,
     null,
     0
-  )
-go
-insert [rpt].[ActivitySettings] (
-    [ActivitySettingsId],
-    [ActivityName],
-    [NumberOfRetries],
-    [InitialDelay],
-    [BackOffCoefficient],
-    [MaximumDelay],
-    [RetryTimeout],
-    [ActivityTimeout],
-    [LoadFactor],
-    [MaximumDelayCount],
-    [PartitionId]
-  )
-values (
-    8,
-    N'FinishAsync',
-    8,
-    0.1,
-    1.4142,
-    null,
-    24,
-    null,
-    0.0,
-    null,
-    0
-  )
-insert [rpt].[ActivitySettings] (
-    [ActivitySettingsId],
-    [ActivityName],
-    [NumberOfRetries],
-    [InitialDelay],
-    [BackOffCoefficient],
-    [MaximumDelay],
-    [RetryTimeout],
-    [ActivityTimeout],
-    [LoadFactor],
-    [MaximumDelayCount],
-    [PartitionId]
-  )
-values (
-    9,
-    N'Infra',
-    10,
-    0.25,
-    1,
-    0.25,
-    24,
-    null,
-    0.0,
-    null,
-    0
-  )
-insert [rpt].[ActivitySettings] (
-    [ActivitySettingsId],
-    [ActivityName],
-    [NumberOfRetries],
-    [InitialDelay],
-    [BackOffCoefficient],
-    [MaximumDelay],
-    [RetryTimeout],
-    [ActivityTimeout],
-    [LoadFactor],
-    [MaximumDelayCount],
-    [PartitionId]
-  )
-values (
-    10,
-    N'InfraTest',
-    2,
-    0.03,
-    1,
-    0.25,
-    24,
-    null,
-    0.0,
-    null,
-    0
-  )
-insert [rpt].[ActivitySettings] (
-    [ActivitySettingsId],
-    [ActivityName],
-    [NumberOfRetries],
-    [InitialDelay],
-    [BackOffCoefficient],
-    [MaximumDelay],
-    [RetryTimeout],
-    [ActivityTimeout],
-    [LoadFactor],
-    [MaximumDelayCount],
-    [PartitionId]
-  )
-values (
-    11,
-    N'OrchestrationAlpha',
-    2,
-    0.03,
-    1,
-    0.25,
-    24,
-    null,
-    null,
-    null,
-    null
-  )
-insert [rpt].[ActivitySettings] (
-    [ActivitySettingsId],
-    [ActivityName],
-    [NumberOfRetries],
-    [InitialDelay],
-    [BackOffCoefficient],
-    [MaximumDelay],
-    [RetryTimeout],
-    [ActivityTimeout],
-    [LoadFactor],
-    [MaximumDelayCount],
-    [PartitionId]
-  )
-values (
-    12,
-    N'OrchestrationBravo',
-    2,
-    0.03,
-    1,
-    0.25,
-    24,
-    null,
-    null,
-    null,
-    null
-  )
-insert [rpt].[ActivitySettings] (
-    [ActivitySettingsId],
-    [ActivityName],
-    [NumberOfRetries],
-    [InitialDelay],
-    [BackOffCoefficient],
-    [MaximumDelay],
-    [RetryTimeout],
-    [ActivityTimeout],
-    [LoadFactor],
-    [MaximumDelayCount],
-    [PartitionId]
-  )
-values (
-    13,
-    N'OrchestrationCharlie',
-    2,
-    0.03,
-    1,
-    0.25,
-    24,
-    null,
-    null,
-    null,
-    null
   )
 go
 set identity_insert [rpt].[ActivitySettings] off

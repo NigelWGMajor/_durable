@@ -12,14 +12,14 @@ public interface IPayload
 
 public class InputPayload : IPayload
 {
-    [JsonPropertyName("Name")]
+    [JsonPropertyName("name")]
     public string Name { get; set; } = "";
 
-    [JsonPropertyName("UniqueKey")]
+    [JsonPropertyName("uniqueKey")]
     public string UniqueKey { get; set; } = "";
 
-    [JsonPropertyName("Disruptions")]
+    [JsonPropertyName("disruptions")]
     public string[] Disruptions { get; set; } = [];
-    [JsonPropertyName("ExternalData")]
-    public string ExternalData { get; set; } = "ExternalTestData";
+    // [JsonPropertyName("ExternalData")]
+    // public string ExternalData { get; set; } = "ExternalTestData";
 }

@@ -50,7 +50,7 @@ Content-Type: application/json
 HTTP/1.1 200  - OK
 connection: close
 content-type: application/json; charset=utf-8
-date: Thu, 07 Nov 2024 18:11:05 GMT
+date: Wed, 20 Nov 2024 14:43:45 GMT
 server: Kestrel
 transfer-encoding: chunked
 ###
@@ -65,7 +65,7 @@ Content-Type: application/json
 HTTP/1.1 200  - OK
 connection: close
 content-type: application/json; charset=utf-8
-date: Thu, 07 Nov 2024 18:11:06 GMT
+date: Wed, 20 Nov 2024 14:43:46 GMT
 server: Kestrel
 transfer-encoding: chunked
 ###
@@ -80,7 +80,7 @@ Content-Type: application/json
 HTTP/1.1 200  - OK
 connection: close
 content-type: application/json; charset=utf-8
-date: Thu, 07 Nov 2024 18:11:06 GMT
+date: Wed, 20 Nov 2024 14:43:47 GMT
 server: Kestrel
 transfer-encoding: chunked
 ###
@@ -91,13 +91,6 @@ Content-Type: application/json
     "name":"Redundant_operation_call_should_be_ignored", 
     "uniqueKey":"1003"
 }
-
-HTTP/1.1 200  - OK
-connection: close
-content-type: application/json; charset=utf-8
-date: Thu, 07 Nov 2024 18:11:06 GMT
-server: Kestrel
-transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -109,13 +102,6 @@ Content-Type: application/json
         "Wait"
     ]
 }
-
-HTTP/1.1 200  - OK
-connection: close
-content-type: application/json; charset=utf-8
-date: Thu, 07 Nov 2024 18:11:07 GMT
-server: Kestrel
-transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -127,13 +113,6 @@ Content-Type: application/json
         "Pass"
     ]
 }
-
-HTTP/1.1 200  - OK
-connection: close
-content-type: application/json; charset=utf-8
-date: Thu, 07 Nov 2024 18:11:07 GMT
-server: Kestrel
-transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -148,13 +127,6 @@ Content-Type: application/json
         "Stall"
     ]
 }
-
-HTTP/1.1 200  - OK
-connection: close
-content-type: application/json; charset=utf-8
-date: Thu, 07 Nov 2024 18:11:07 GMT
-server: Kestrel
-transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -166,13 +138,6 @@ Content-Type: application/json
          "Fail"
     ]
 }
-
-HTTP/1.1 200  - OK
-connection: close
-content-type: application/json; charset=utf-8
-date: Thu, 07 Nov 2024 18:11:07 GMT
-server: Kestrel
-transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -184,13 +149,6 @@ Content-Type: application/json
         "Drag"
     ]
 }
-
-HTTP/1.1 200  - OK
-connection: close
-content-type: application/json; charset=utf-8
-date: Thu, 07 Nov 2024 18:11:08 GMT
-server: Kestrel
-transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -199,13 +157,6 @@ Content-Type: application/json
     "name":"Reentrant_call_during_drag_should_become_redundant", 
     "uniqueKey":"1008"
 }
-
-HTTP/1.1 200  - OK
-connection: close
-content-type: application/json; charset=utf-8
-date: Thu, 07 Nov 2024 18:11:08 GMT
-server: Kestrel
-transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -217,13 +168,6 @@ Content-Type: application/json
         "Stick"
     ]
 }
-
-HTTP/1.1 200  - OK
-connection: close
-content-type: application/json; charset=utf-8
-date: Thu, 07 Nov 2024 18:11:08 GMT
-server: Kestrel
-transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -235,13 +179,6 @@ Content-Type: application/json
         "Choke"
     ]
 }
-
-HTTP/1.1 200  - OK
-connection: close
-content-type: application/json; charset=utf-8
-date: Thu, 07 Nov 2024 18:11:09 GMT
-server: Kestrel
-transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -250,13 +187,6 @@ Content-Type: application/json
     "name":"Call_to_previously_unsuccessful_should_become_redundant", 
     "uniqueKey":"1007"
 }
-
-HTTP/1.1 200  - OK
-connection: close
-content-type: application/json; charset=utf-8
-date: Thu, 07 Nov 2024 18:11:09 GMT
-server: Kestrel
-transfer-encoding: chunked
 ###
 POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 Content-Type: application/json
@@ -265,16 +195,6 @@ Content-Type: application/json
     "name":"Call_to_previously_successful_should_become_redundant", 
     "uniqueKey":"1002"
 }
-
-HTTP/1.1 200  - OK
-connection: close
-content-type: application/json; charset=utf-8
-date: Thu, 07 Nov 2024 18:11:09 GMT
-server: Kestrel
-transfer-encoding: chunked
-/*
-## Do not run this until everything else has been done!
-*/
 ###
 # POST http://localhost:7071/api/TestOrchestration_HttpStart HTTP/1.1
 # Content-Type: application/json
