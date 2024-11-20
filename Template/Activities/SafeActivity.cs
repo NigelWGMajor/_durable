@@ -12,15 +12,15 @@ public class SafeActivity
     private Func<Product, Task<Product>> _executable;
     private static DataStore _store = new DataStore("");
     private ActivityRecord _current = new();
-    private bool CapacityIsCompromised()
+    private async Task<bool> IsCapacityCompromisedAsync()
     {
         // check the existing load on the system, and the load rating for this activity.
         // If the repeat count is not too high given this, then return false to allow the action to proceed immediately. 
         /* THIS IS PENDING THE DATA MODIFICATIONS TO THE ACTIVITY SETTINGS to include the load factor. */
         /* Also needs a stored procedure to get the current activity load  */
         /* We should make this abstract by having the total load in the 0 - 1.0 range */
-
-        return false;
+        return await _store.CanActivityRunNowAsync(_current);
+        //return false;
     }
 
     public SafeActivity(Func<Product, Task<Product>> executable, Product product)
@@ -97,7 +97,7 @@ public class SafeActivity
             return;
         // If the system is overloaded, we can defer the activity.
         _current = await _store.ReadActivityStateAsync(_product.UniqueKey);
-        if (CapacityIsCompromised())
+        if (await IsCapacityCompromisedAsync())
         {
             _current.RetryCount++;
             _current.State = ActivityState.Deferred;
