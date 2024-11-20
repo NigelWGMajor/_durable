@@ -21,11 +21,11 @@ public class DataStore : IDataStore
 {
     public bool IsValid { get; private set; }
     private readonly string _connectionString;
-    private const string _read_activity_ = "rpt.OperationFlowState_Select";
-    private const string _read_settings_ = "rpt.ActivitySettings_Select";
-    private const string _write_activity_ = "rpt.OperationFlowState_Upsert";
-    private const string _write_settings_ = "rpt.ActivitySettings_Upsert";
-    private const string _can_run_now_ = "rpt.ActivityCanRunNow_Select";
+    private const string _read_activity_ = "rpt.FlowStatesInFlight_Select";
+    private const string _read_settings_ = "rpt.FlowActivitySettings_Select";
+    private const string _write_activity_ = "rpt.FlowStatesInFlight_Upsert";
+    private const string _write_settings_ = "rpt.FlowActivitySettings_Upsert";
+    private const string _can_run_now_ = "rpt.FlowActivityCanRun_Select";
     private static readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
     public DataStore(string connectionString)
