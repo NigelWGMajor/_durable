@@ -10,64 +10,66 @@ go
 -- Alter @RebuildDatabase to 1 to drop and recreate the database, or 0 to keep the existing.
 --
 -------------------------------------------------------------------------------------------------------
-declare @RebuildDatabase bit = 0;
-if (@RebuildDatabase = 1) begin print '*** Dropping database OperationsLocal';
-drop database [OperationsLocal];
+declare @RebuildDatabase bit = 1;
+if (@RebuildDatabase = 1) 
+begin 
+-- print '*** Dropping database FlowManagement';
+-- drop database [FlowManagement];
 -------------------------------------------------------------------------------------------------------
-print '*** Creating database OperationsLocal';
-create database [OperationsLocal] containment = none on primary (
-  name = N'OperationsLocal',
-  filename = N'/var/opt/mssql/data/OperationsLocal.mdf',
+print '*** Creating database FlowManagement';
+create database [FlowManagement] containment = none on primary (
+  name = N'FlowManagement',
+  filename = N'/var/opt/mssql/data/FlowManagement.mdf',
   size = 8192kb,
   maxsize = UNLIMITED,
   filegrowth = 65536kb
 ) log on (
-  name = N'OperationsLocal_log',
-  filename = N'/var/opt/mssql/data/OperationsLocal_log.ldf',
+  name = N'FlowManagement_log',
+  filename = N'/var/opt/mssql/data/FlowManagement_log.ldf',
   size = 139264kb,
   maxsize = 2048gb,
   filegrowth = 65536kb
 ) with catalog_collation = database_default;
 if (
   1 = fulltextserviceproperty('IsFullTextInstalled')
-) begin exec [OperationsLocal].[dbo].[sp_fulltext_database] @action = 'enable'
-end alter database [OperationsLocal]
-set ansi_null_default off alter database [OperationsLocal]
-set ansi_nulls off alter database [OperationsLocal]
-set ansi_padding off alter database [OperationsLocal]
-set ansi_warnings off alter database [OperationsLocal]
-set arithabort off alter database [OperationsLocal]
-set auto_close off alter database [OperationsLocal]
-set auto_shrink off alter database [OperationsLocal]
-set auto_update_statistics on alter database [OperationsLocal]
-set cursor_close_on_commit off alter database [OperationsLocal]
-set cursor_default global alter database [OperationsLocal]
-set concat_null_yields_null off alter database [OperationsLocal]
-set numeric_roundabort off alter database [OperationsLocal]
-set quoted_identifier off alter database [OperationsLocal]
-set recursive_triggers off alter database [OperationsLocal]
-set disable_broker alter database [OperationsLocal]
-set auto_update_statistics_async off alter database [OperationsLocal]
-set date_correlation_optimization off alter database [OperationsLocal]
-set trustworthy off alter database [OperationsLocal]
-set allow_snapshot_isolation off alter database [OperationsLocal]
-set parameterization simple alter database [OperationsLocal]
-set read_committed_snapshot off alter database [OperationsLocal]
-set honor_broker_priority off alter database [OperationsLocal]
-set recovery full alter database [OperationsLocal]
-set multi_user alter database [OperationsLocal]
-set page_verify checksum alter database [OperationsLocal]
-set db_chaining off alter database [OperationsLocal]
-set filestream(non_transacted_access = off) alter database [OperationsLocal]
-set target_recovery_time = 60 seconds alter database [OperationsLocal]
-set delayed_durability = disabled alter database [OperationsLocal]
-set accelerated_database_recovery = off use [master] alter database [OperationsLocal]
-set query_store = off alter database [OperationsLocal]
+) begin exec [FlowManagement].[dbo].[sp_fulltext_database] @action = 'enable'
+end alter database [FlowManagement]
+set ansi_null_default off alter database [FlowManagement]
+set ansi_nulls off alter database [FlowManagement]
+set ansi_padding off alter database [FlowManagement]
+set ansi_warnings off alter database [FlowManagement]
+set arithabort off alter database [FlowManagement]
+set auto_close off alter database [FlowManagement]
+set auto_shrink off alter database [FlowManagement]
+set auto_update_statistics on alter database [FlowManagement]
+set cursor_close_on_commit off alter database [FlowManagement]
+set cursor_default global alter database [FlowManagement]
+set concat_null_yields_null off alter database [FlowManagement]
+set numeric_roundabort off alter database [FlowManagement]
+set quoted_identifier off alter database [FlowManagement]
+set recursive_triggers off alter database [FlowManagement]
+set disable_broker alter database [FlowManagement]
+set auto_update_statistics_async off alter database [FlowManagement]
+set date_correlation_optimization off alter database [FlowManagement]
+set trustworthy off alter database [FlowManagement]
+set allow_snapshot_isolation off alter database [FlowManagement]
+set parameterization simple alter database [FlowManagement]
+set read_committed_snapshot off alter database [FlowManagement]
+set honor_broker_priority off alter database [FlowManagement]
+set recovery full alter database [FlowManagement]
+set multi_user alter database [FlowManagement]
+set page_verify checksum alter database [FlowManagement]
+set db_chaining off alter database [FlowManagement]
+set filestream(non_transacted_access = off) alter database [FlowManagement]
+set target_recovery_time = 60 seconds alter database [FlowManagement]
+set delayed_durability = disabled alter database [FlowManagement]
+set accelerated_database_recovery = off use [master] alter database [FlowManagement]
+set query_store = off alter database [FlowManagement]
 set read_write
 end;
 -------------------------------------------------------------------------------------------------------
-print '*** Switching to OperationsLocal database';
-use OperationsLocal;
+print '*** Switching to FlowManagement database';
+use FlowManagement;
 go 
 if not exists (
     select *
@@ -88,32 +90,32 @@ go
 if exists(
     select *
     from INFORMATION_SCHEMA.TABLES
-    where TABLE_NAME = 'OperationFlowStates'
+    where TABLE_NAME = 'FlowStatesInFlight'
       and TABLE_SCHEMA = 'rpt'
   ) 
-  drop table [rpt].OperationFlowStates;
+  drop table [rpt].FlowStatesInFlight;
 go 
 if exists(
     select *
     from INFORMATION_SCHEMA.TABLES
-    where TABLE_NAME = 'OperationFlowStatesHistory'
+    where TABLE_NAME = 'FlowStatesHistory'
       and TABLE_SCHEMA = 'rpt'
-  ) drop table [rpt].OperationFlowStatesHistory;
+  ) drop table [rpt].FlowStatesHistory;
 go 
 if exists(
     select *
     from INFORMATION_SCHEMA.TABLES
-    where TABLE_NAME = 'ActivitySettings'
+    where TABLE_NAME = 'FlowActivitySettings'
       and TABLE_SCHEMA = 'rpt'
-  ) drop table [rpt].ActivitySettings;
+  ) drop table [rpt].FlowActivitySettings;
 go 
 if exists(
     select *
     from INFORMATION_SCHEMA.TABLES
-    where TABLE_NAME = 'OperationFlowStatesFinal'
+    where TABLE_NAME = 'FlowStatesFinal'
       and TABLE_SCHEMA = 'rpt'
   ) 
-  drop table [rpt].OperationFlowStatesFinal;
+  drop table [rpt].FlowStatesFinal;
 -------------------------------------------------------------------------------------------------------
 go -- create FlowStates table to define friendly names of allowed states
   print '*** Creating FlowStates table'
@@ -156,11 +158,11 @@ values ('Successful');
 insert into rpt.FlowStates(FlowStateName)
 values ('Unsuccessful');
 -------------------------------------------------------------------------------------------------------
--- create OperationFlowStates table to house runtime flow states
-print '*** Creating OperationFlowStates table';
+-- create FlowStatesInFlight table to house runtime flow states
+print '*** Creating FlowStatesInFlight table';
 go 
-create table [rpt].[OperationFlowStates](
-    [OperationFlowStateID] [bigint] identity(1, 1) NOT NULL,
+create table [rpt].[FlowStatesInFlight](
+    [FlowStateId] [bigint] identity(1, 1) NOT NULL,
     [UniqueKey] [nvarchar](100) NOT NULL,
     [OperationName] [nvarchar](100) NULL,
     [ActivityName] [nvarchar](100) NOT NULL,
@@ -177,7 +179,7 @@ create table [rpt].[OperationFlowStates](
     [Disruptions] nvarchar(max) null,
     [HostServer] nvarchar(100) null,
     [PrevailingLoadFactor] float null
-     constraint [PK_rpt.ReportFlowStates] primary key clustered ([OperationFlowStateID] asc) with (
+     constraint [PK_rpt.FlowStatesInFlight] primary key clustered ([FlowStateId] asc) with (
       pad_index = off,
       statistics_norecompute = off,
       ignore_dup_key = off,
@@ -187,14 +189,14 @@ create table [rpt].[OperationFlowStates](
     ) on [primary]
   ) on [primary] textimage_on [primary];
 go
-alter table [rpt].[OperationFlowStates]
+alter table [rpt].[FlowStatesInFlight]
 add constraint [DF_ReportFlowStates_ActivityState] default ((0)) for [ActivityState];
 -------------------------------------------------------------------------------------------------------
 go -- create history table
-  print '*** Creating OperationFlowStatesHistory table';
+  print '*** Creating FlowStatesHistory table';
 go 
-create table [rpt].[OperationFlowStatesHistory](
-    [OperationFlowStatesHistoryID] [bigint] identity(1, 1) not null,
+create table [rpt].[FlowStatesHistory](
+    [FlowStatesHistoryId] [bigint] identity(1, 1) not null,
     [UniqueKey] [nvarchar](100) not null,
     [OperationName] [nvarchar](100) null,
     [ActivityName] [nvarchar](100) not null,
@@ -211,7 +213,7 @@ create table [rpt].[OperationFlowStatesHistory](
     [Disruptions] nvarchar(max) null,
     [HostServer] nvarchar(100) null,
     [PrevailingLoadFactor] float null
-     constraint [PK_rpt.OperationFlowStatesHistory] primary key clustered ([OperationFlowStatesHistoryID] asc) with (
+     constraint [PK_rpt.FlowStatesHistory] primary key clustered ([FlowStatesHistoryId] asc) with (
       pad_index = off,
       statistics_norecompute = off,
       ignore_dup_key = off,
@@ -223,10 +225,10 @@ create table [rpt].[OperationFlowStatesHistory](
 go 
 -------------------------------------------------------------------------------------------------------
 go -- create finaly table
-  print '*** Creating OperationFlowStatesFinal table';
+  print '*** Creating FlowStatesFinal table';
 go 
-create table [rpt].[OperationFlowStatesFinal](
-    [OperationFlowStatesFinalID] [bigint] identity(1, 1) not null,
+create table [rpt].[FlowStatesFinal](
+    [FlowStatesFinalId] [bigint] identity(1, 1) not null,
     [UniqueKey] [nvarchar](100) not null,
     [OperationName] [nvarchar](100) null,
     [ActivityName] [nvarchar](100) not null,
@@ -243,7 +245,7 @@ create table [rpt].[OperationFlowStatesFinal](
     [Disruptions] nvarchar(max) null,
     [HostServer] nvarchar(100) null,
     [PrevailingLoadFactor] float null
-     constraint [PK_rpt.OperationFlowStatesFinal] primary key clustered ([OperationFlowStatesFinalID] asc) with (
+     constraint [PK_rpt.FlowStatesFinal] primary key clustered ([FlowStatesFinalId] asc) with (
       pad_index = off,
       statistics_norecompute = off,
       ignore_dup_key = off,
@@ -260,14 +262,14 @@ set ansi_nulls on
 go
 set quoted_identifier on
 go 
-create table [rpt].[ActivitySettings](
-    [ActivitySettingsId] [int] identity(1, 1) not null,
+create table [rpt].[FlowActivitySettings](
+    [FlowActivitySettingsId] [int] identity(1, 1) not null,
     [ActivityName] [nvarchar](100) not null,
     [ActivityTimeout] [float] null,
     [LoadFactor] float null,
     [MaximumDelayCount] int null,
     [PartitionId] [int] null,
-    constraint [PK_ActivitySettings] primary key clustered ([ActivitySettingsId] asc) with (
+    constraint [PK_FlowActivitySettings] primary key clustered ([FlowActivitySettingsId] asc) with (
       pad_index = off,
       statistics_norecompute = off,
       ignore_dup_key = off,
@@ -277,15 +279,15 @@ create table [rpt].[ActivitySettings](
     ) on [primary]
   ) on [primary]
 go
-alter table [rpt].[ActivitySettings]
-add constraint [DF_ActivitySettings_PartitionId] default ((0)) for [PartitionId]
+alter table [rpt].[FlowActivitySettings]
+add constraint [DF_FlowActivitySettings_PartitionId] default ((0)) for [PartitionId]
 go -- add test data
-  use [OperationsLocal]
+  use [FlowManagement]
 go
-set identity_insert [rpt].[ActivitySettings] on
+set identity_insert [rpt].[FlowActivitySettings] on
 go
-insert [rpt].[ActivitySettings] (
-    [ActivitySettingsId],
+insert [rpt].[FlowActivitySettings] (
+    [FlowActivitySettingsId],
     [ActivityName],
     [ActivityTimeout],
     [LoadFactor],
@@ -301,8 +303,8 @@ values (
     0
   )
 go
-insert [rpt].[ActivitySettings] (
-    [ActivitySettingsId],
+insert [rpt].[FlowActivitySettings] (
+    [FlowActivitySettingsId],
     [ActivityName],
     [ActivityTimeout],
     [LoadFactor],
@@ -318,8 +320,8 @@ values (
     0
   )
 go
-insert [rpt].[ActivitySettings] (
-    [ActivitySettingsId],
+insert [rpt].[FlowActivitySettings] (
+    [FlowActivitySettingsId],
     [ActivityName],
     [ActivityTimeout],
     [LoadFactor],
@@ -335,8 +337,8 @@ values (
     0
   )
 go
-insert [rpt].[ActivitySettings] (
-    [ActivitySettingsId],
+insert [rpt].[FlowActivitySettings] (
+    [FlowActivitySettingsId],
     [ActivityName],
     [ActivityTimeout],
     [LoadFactor],
@@ -352,8 +354,8 @@ values (
     0
   )
 go
-insert [rpt].[ActivitySettings] (
-    [ActivitySettingsId],
+insert [rpt].[FlowActivitySettings] (
+    [FlowActivitySettingsId],
     [ActivityName],
     [ActivityTimeout],
     [LoadFactor],
@@ -369,6 +371,6 @@ values (
     0
   )
 go
-set identity_insert [rpt].[ActivitySettings] off
+set identity_insert [rpt].[FlowActivitySettings] off
 -------------------------------------------------------------------------------------------------------
 print '*** Done.';
